@@ -15,6 +15,7 @@ export default function EditDialog({
   selectedRow,
   children,
   onSave,
+  isLoading = false
 }) {
   if (!selectedRow) return null;
 
@@ -33,8 +34,8 @@ export default function EditDialog({
           >
             Cancel
           </Button>
-          <Button onClick={onSave} className="bg-bg-primary  cursor-pointer !p-4 text-white rounded-md">
-            Save
+          <Button disabled={isLoading} onClick={onSave} className="bg-bg-primary  cursor-pointer !p-4 text-white rounded-md">
+            {isLoading ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

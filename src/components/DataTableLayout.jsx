@@ -52,6 +52,9 @@ export default function DataTable({
   initialPage = 1,
   defaultAddSubscriberType = null,
   statusComponentType = "switch",
+  // ✨ تم إضافة Props لتتبع حالة التحميل من المكون الأب
+  isLoadingEdit = false, 
+  isLoadingDelete = false, 
 }) {
   const [searchValue, setSearchValue] = useState("");
   const [activeFilters, setActiveFilters] = useState(() => {
@@ -167,6 +170,9 @@ export default function DataTable({
     setCurrentPage(1);
   };
 
+  // تعطيل كل أزرار الإجراءات في حال كانت أي عملية تعديل أو حذف جارية
+  const isAnyActionPending = isLoadingEdit || isLoadingDelete;
+
   return (
     <div className="w-full !p-3 space-y-6">
       <div className="flex justify-between !mb-6 items-center flex-wrap gap-4">
@@ -217,6 +223,8 @@ export default function DataTable({
           )}
           {showAddButton && (
             <Button
+              // ⛔ تعطيل الزر إذا كان هناك أي عملية أخرى جارية
+              disabled={isAnyActionPending} 
               onClick={() => {
                 if (onAddClick) {
                   onAddClick();
@@ -243,8 +251,9 @@ export default function DataTable({
           {showDeleteButtonInHeader && (
             <Button
               onClick={() => onDeleteInHeader(selectedRows)}
+              // ⛔ تعطيل الزر إذا كان هناك أي عملية أخرى جارية
+              disabled={selectedRows.length === 0 || isAnyActionPending}
               className="bg-red-600 cursor-pointer text-white hover:bg-red-700 rounded-[10px] !p-3"
-              disabled={selectedRows.length === 0}
             >
               <Trash className="w-5 h-5 !mr-2" />
               Delete Selected
@@ -409,6 +418,8 @@ export default function DataTable({
                           <Button
                             variant="ghost"
                             size="sm"
+                            // ⛔ تعطيل زر التعديل إذا كانت عملية تعديل أو حذف جارية
+                            disabled={isAnyActionPending} 
                             onClick={() => {
                               onEdit?.(row);
                             }}
@@ -420,6 +431,8 @@ export default function DataTable({
                           <Button
                             variant="ghost"
                             size="sm"
+                            // ⛔ تعطيل زر الحذف إذا كانت عملية تعديل أو حذف جارية
+                            disabled={isAnyActionPending} 
                             onClick={() => onDelete?.(row)}
                           >
                             <Trash className="w-4 h-4 text-red-600" />

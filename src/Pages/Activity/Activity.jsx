@@ -18,6 +18,11 @@ import {
 
 const Activity = () => {
   const dispatch = useDispatch();
+  
+  // ✨ حالات التحميل الجديدة لتعطيل الأزرار في الـ DataTable
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const [activities, setActivities] = useState([]);
   const token = localStorage.getItem("token");
   const [selectedRow, setSelectedRow] = useState(null);
@@ -28,7 +33,7 @@ const Activity = () => {
     Authorization: `Bearer ${token}`,
   });
 
-  // Fetch activities
+  // Fetch activities (تبقى كما هي باستخدام الـ Loader العام)
   const fetchActivities = async () => {
     dispatch(showLoader());
     try {
@@ -45,7 +50,6 @@ const Activity = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("Activities API response:", result);
 
         let activitiesData = [];
         if (result.data && Array.isArray(result.data)) {
@@ -65,11 +69,10 @@ const Activity = () => {
           id: activity._id || activity.id,
           name: activity.name || "",
           // تخزين الحالة كقيمة منطقية
-          status: activity.status === true || activity.status === "true", 
+          status: activity.status === true || activity.status === "true",
         }));
 
         setActivities(formattedActivities);
-        console.log("Activities set:", formattedActivities);
       } else {
         console.error("Failed to fetch activities:", response.status);
         toast.error("Failed to fetch activities!");
@@ -93,10 +96,9 @@ const Activity = () => {
       ...activity,
       name: activity.name || "",
       // تحويل القيمة المنطقية إلى سلسلة نصية لملء حقل الـ Select في EditDialog
-      status: activity.status === true ? "true" : "false", 
+      status: activity.status === true ? "true" : "false",
     };
 
-    console.log("Editing activity:", completeActivity);
     setSelectedRow(completeActivity);
     setIsEditOpen(true);
   };
@@ -106,6 +108,7 @@ const Activity = () => {
     setIsDeleteOpen(true);
   };
 
+  // 📝 تم تحديث الدالة لتستخدم حالة التحميل المنفصلة
   const handleSave = async () => {
     if (!selectedRow) return;
 
@@ -113,13 +116,15 @@ const Activity = () => {
 
     const payload = {
       name: name?.trim() || "",
-      // status هي بالفعل "true" أو "false" من حقل Select في EditDialog
+      // status هي بالفعل "true" أو "false" من حقل Select
       status: status,
     };
 
-    console.log("Payload being sent:", payload);
-
-    dispatch(showLoader());
+    // ✨ تفعيل حالة التحميل الخاصة بالحفظ
+    setIsSaving(true);
+    // يمكنك إزالة الـ dispatch(showLoader()) هنا أو تركه إذا كنت تفضل أن يظهر الـ FullPageLoader أيضاً
+    // dispatch(showLoader()); 
+    
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/activities/${id}`,
@@ -156,12 +161,18 @@ const Activity = () => {
         autoClose: 3000,
       });
     } finally {
-      dispatch(hideLoader());
+      // ✨ تعطيل حالة التحميل الخاصة بالحفظ
+      setIsSaving(false);
+      // dispatch(hideLoader()); // إذا كنت تستخدم الـ Loader العام
     }
   };
 
+  // 📝 تم تحديث الدالة لتستخدم حالة التحميل المنفصلة
   const handleDeleteConfirm = async () => {
-    dispatch(showLoader());
+    // ✨ تفعيل حالة التحميل الخاصة بالحذف
+    setIsDeleting(true);
+    // dispatch(showLoader()); // إذا كنت تستخدم الـ Loader العام
+
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/activities/${selectedRow.id}`,
@@ -195,35 +206,32 @@ const Activity = () => {
         autoClose: 3000,
       });
     } finally {
-      dispatch(hideLoader());
+      // ✨ تعطيل حالة التحميل الخاصة بالحذف
+      setIsDeleting(false);
+      // dispatch(hideLoader()); // إذا كنت تستخدم الـ Loader العام
     }
   };
 
+  // دالة تغيير الحالة (Toggle) ستبقى تستخدم الـ Loader العام أو يمكنك أيضاً فصل حالتها.
+  // سنتركها تستخدم الـ Loader العام لتبسيط الأمر.
   const handleToggleStatus = async (row, newStatus) => {
     const { id } = row;
-    
-    // row.status هي قيمة منطقية (true/false) من الـ state
     const currentStatusIsActive = row.status;
-    
-    // عكس القيمة المنطقية للحالة الجديدة
-    const newStatusBoolean = !currentStatusIsActive; 
-    
-    // القيمة التي سيتم إرسالها للـ API (يجب أن تكون سلسلة نصية "true" أو "false")
+    const newStatusBoolean = !currentStatusIsActive;
     const statusValue = newStatusBoolean ? "true" : "false";
-
-    // Save old status for rollback in case of error
     const oldStatus = row.status;
 
-    // Optimistic update - update UI immediately
+    // Optimistic update
     setActivities((prevActivities) =>
       prevActivities.map((activity) =>
-        activity.id === id 
-          ? { ...activity, status: newStatusBoolean } 
+        activity.id === id
+          ? { ...activity, status: newStatusBoolean }
           : activity
       )
     );
 
-    dispatch(showLoader());
+    // نستخدم الـ Loader العام هنا
+    dispatch(showLoader()); 
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/activities/${id}`,
@@ -249,13 +257,10 @@ const Activity = () => {
           position: "top-right",
           autoClose: 3000,
         });
-        
         // Rollback on error
         setActivities((prevActivities) =>
           prevActivities.map((activity) =>
-            activity.id === id 
-              ? { ...activity, status: oldStatus } 
-              : activity
+            activity.id === id ? { ...activity, status: oldStatus } : activity
           )
         );
       }
@@ -265,13 +270,10 @@ const Activity = () => {
         position: "top-right",
         autoClose: 3000,
       });
-      
       // Rollback on error
       setActivities((prevActivities) =>
         prevActivities.map((activity) =>
-          activity.id === id 
-            ? { ...activity, status: oldStatus } 
-            : activity
+          activity.id === id ? { ...activity, status: oldStatus } : activity
         )
       );
     } finally {
@@ -280,7 +282,6 @@ const Activity = () => {
   };
 
   const onChange = (key, value) => {
-    console.log(`Changing ${key} to:`, value);
     setSelectedRow((prev) => ({
       ...prev,
       [key]: value,
@@ -289,19 +290,20 @@ const Activity = () => {
 
   const columns = [
     { key: "name", label: "Activity Name" },
-    { 
-      key: "status", 
+    {
+      key: "status",
       label: "Status",
-      // لم يعد هذا الجزء ضرورياً بشكل فعال ولكن يمكن تركه كمرجع
-      statusMapping: {
-        active: "true", 
-        inactive: "false" 
-      },
       render: (row) => (
-        <span className={row.status ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
+        <span
+          className={
+            row.status
+              ? "text-green-600 font-medium"
+              : "text-gray-500 font-medium"
+          }
+        >
           {row.status ? "Active" : "Inactive"}
         </span>
-      )
+      ),
     },
   ];
 
@@ -319,6 +321,7 @@ const Activity = () => {
 
   return (
     <>
+      {/* ✨ تمرير حالات التحميل الجديدة للـ DataTable */}
       <DataTable
         data={activities}
         columns={columns}
@@ -334,6 +337,8 @@ const Activity = () => {
         filterOptions={filterOptionsForActivities}
         searchKeys={["name"]}
         className="table-compact"
+        isLoadingEdit={isSaving}    
+        isLoadingDelete={isDeleting} 
       />
 
       {selectedRow && (
@@ -345,6 +350,8 @@ const Activity = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
+            // ✨ تمرير حالة التحميل للحوار لتعطيل زر "Save" داخله
+            isLoading={isSaving} 
           >
             {/* Activity Name Field */}
             <div>
@@ -391,6 +398,8 @@ const Activity = () => {
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
             name={selectedRow.name}
+            // ✨ تمرير حالة التحميل للحوار لتعطيل زر "Delete" داخله
+            isLoading={isDeleting} 
           />
         </>
       )}

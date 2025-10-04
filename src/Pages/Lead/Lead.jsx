@@ -27,6 +27,8 @@ const Lead = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
@@ -61,9 +63,9 @@ const Lead = () => {
         )
           .toString()
           .padStart(2, "0")}/${createdDate
-          .getDate()
-          .toString()
-          .padStart(2, "0")}`;
+            .getDate()
+            .toString()
+            .padStart(2, "0")}`;
 
         return {
           id: lead._id,
@@ -103,9 +105,9 @@ const Lead = () => {
   const handleEdit = (lead) => {
     // When editing, set the selected row and use the _id values for the Select components
     setSelectedRow({
-        ...lead,
-        sales_id: lead.sales_id_value,
-        activity_id: lead.activity_id_value
+      ...lead,
+      sales_id: lead.sales_id_value,
+      activity_id: lead.activity_id_value
     });
     setIsEditOpen(true);
   };
@@ -136,7 +138,7 @@ const Lead = () => {
     }
 
     console.log("Payload being sent:", payload);
-
+ setIsSaving(true);
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/leads/${id}`,
@@ -164,9 +166,14 @@ const Lead = () => {
       console.error("Error updating lead:", error);
       toast.error("Error occurred while updating lead!");
     }
+    finally {
+        // 2. تعطيل حالة التحميل بعد الانتهاء
+        setIsSaving(false); 
+    }
   };
 
   const handleDeleteConfirm = async () => {
+    setIsDeleting(true); 
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/leads/${selectedRow.id}`,
@@ -186,6 +193,9 @@ const Lead = () => {
     } catch (error) {
       console.error("Error deleting lead:", error);
       toast.error("Error occurred while deleting lead!");
+    } finally {
+        // 2. تعطيل حالة التحميل بعد الانتهاء
+        setIsDeleting(false); 
     }
   };
 
@@ -234,7 +244,7 @@ const Lead = () => {
     { key: "activity_id", label: "Activity" },
     { key: "sales_id", label: "Sales" },
     { key: "transfer", label: "Transfer" },
-    {key:"source_id", label:"Source"},
+    { key: "source_id", label: "Source" },
     { key: "status", label: "Status" },
   ];
 
@@ -275,6 +285,8 @@ const Lead = () => {
         filterOptions={filterOptionsForleads}
         searchKeys={["name", "phone", "type", "target_name"]}
         className="table-compact"
+        isLoadingEdit={isSaving}    
+  isLoadingDelete={isDeleting}
       />
 
       {selectedRow && (
@@ -286,6 +298,7 @@ const Lead = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
+            isLoading={isSaving}
           >
             <label htmlFor="name" className="text-gray-400 !pb-3">
               Name
@@ -411,6 +424,7 @@ const Lead = () => {
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
             name={selectedRow.name}
+            isLoading={isDeleting}
           />
         </>
       )}

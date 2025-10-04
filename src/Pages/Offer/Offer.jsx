@@ -48,6 +48,11 @@ const Offer = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
+  // ✨ الخطوة 1: إضافة حالات التحميل المنفصلة
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(null); // يستخدم id الصف الذي يتم تبديل حالته
+
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
@@ -74,7 +79,6 @@ const Offer = () => {
       const result = await response.json();
 
       const formatted = result.data.data.map((offer) => {
-        // يمكنك إضافة حالة افتراضية هنا إذا لم تكن موجودة في الـ API
         const status = offer.status || 'Active'; 
         
         return {
@@ -158,6 +162,7 @@ const Offer = () => {
     setIsDeleteOpen(true);
   };
 
+  // 📝 الخطوة 2: تحديث دالة الحفظ/التعديل لاستخدام isSaving
   const handleSave = async () => {
     if (!selectedRow) return;
 
@@ -172,7 +177,7 @@ const Offer = () => {
       start_date,
       end_date,
       product_id,
-      status // تضمين الحالة في حالة الإضافة
+     
     } = selectedRow;
 
     const payload = {
@@ -181,13 +186,14 @@ const Offer = () => {
       start_date: start_date || "",
       end_date: end_date || "",
       discount_type: discount_type || "",
-      // التأكد من أن القيمة هي رقم
       discount_amount: Number(discount_amount) || 0, 
       subscription_details: subscription_details || "",
       setup_phase: setup_phase || "",
       product_id: product_id || null,
-      status: status || 'Active',
     };
+
+    // ✨ تفعيل حالة التحميل المنفصلة
+    setIsSaving(true);
 
     try {
       const response = await fetch(
@@ -221,10 +227,17 @@ const Offer = () => {
     } catch (error) {
       console.error("Error updating offer:", error);
       toast.error(error?.message || "Error occurred while updating offer!");
+    } finally {
+      // ✨ تعطيل حالة التحميل المنفصلة
+      setIsSaving(false);
     }
   };
 
+  // 📝 الخطوة 3: تحديث دالة الحذف لاستخدام isDeleting
   const handleDeleteConfirm = async () => {
+    // ✨ تفعيل حالة التحميل المنفصلة
+    setIsDeleting(true);
+
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/offers/${selectedRow.id}`,
@@ -253,6 +266,71 @@ const Offer = () => {
     } catch (error) {
       console.error("Error deleting offer:", error);
       toast.error(error?.message || "Error occurred while deleting offer!");
+    } finally {
+      // ✨ تعطيل حالة التحميل المنفصلة
+      setIsDeleting(false);
+    }
+  };
+  
+  // 💡 دالة تبديل الحالة
+  const handleToggleStatus = async (row) => {
+    const { id, status: currentStatus } = row;
+    
+    // تحديد الحالة الجديدة
+    const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+    const oldStatus = currentStatus;
+
+    // ✨ تفعيل حالة تحميل الزر الخاص بالصف المحدد
+    setIsTogglingStatus(id);
+
+    // Optimistic update - تحديث الواجهة فورًا
+    setoffers((prevOffers) =>
+      prevOffers.map((offer) =>
+        offer.id === id ? { ...offer, status: newStatus } : offer
+      )
+    );
+
+    try {
+      const response = await fetch(
+        `https://negotia.wegostation.com/api/admin/offers/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          // إرسال الحالة الجديدة
+          body: JSON.stringify({ status: newStatus }), 
+        }
+      );
+
+      if (response.ok) {
+        toast.success(`Offer set to ${newStatus}!`);
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to update status:", errorData);
+        toast.error("Failed to update offer status!");
+        
+        // Rollback on error - إعادة الحالة القديمة
+        setoffers((prevOffers) =>
+          prevOffers.map((offer) =>
+            offer.id === id ? { ...offer, status: oldStatus } : offer
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error updating offer status:", error);
+      toast.error("Error occurred while updating offer status!");
+      
+      // Rollback on error
+      setoffers((prevOffers) =>
+        prevOffers.map((offer) =>
+          offer.id === id ? { ...offer, status: oldStatus } : offer
+        )
+      );
+    } finally {
+      // ✨ تعطيل حالة تحميل الزر الخاص بالصف المحدد
+      setIsTogglingStatus(null);
     }
   };
 
@@ -263,13 +341,12 @@ const Offer = () => {
     }));
   };
 
-  // 💡 الأعمدة المحسّنة لعرض أسرع وأوضح
+  // 💡 الأعمدة المحسّنة
   const columns = [
     { key: "name", label: "Offer Name" },
     { 
       key: "discount_info", 
       label: "Discount",
-      // دمج نوع الخصم ومقداره في عمود واحد
       render: (row) => (
         <span className="font-medium">
           {row.discount_amount} {row.discount_type === 'percentage' ? '%' : 'Value'}
@@ -279,7 +356,6 @@ const Offer = () => {
     { 
       key: "dates", 
       label: "Duration",
-      // دمج تاريخ البدء والانتهاء
       render: (row) => (
         <span className="text-sm text-gray-600">
           {row.start_date} to {row.end_date}
@@ -290,7 +366,6 @@ const Offer = () => {
     { 
       key: "status", 
       label: "Status",
-      // عرض الحالة (افتراضياً: Active)
       render: (row) => (
         <span className={row.status === "Active" ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
           {row.status === "Active" ? "Active" : "Inactive"}
@@ -313,14 +388,17 @@ const Offer = () => {
         addRoute="/offer/add"
         onEdit={handleEdit}
         onDelete={handleDelete}
-        // على افتراض أنك قد تحتاج إلى تبديل الحالة مستقبلاً، سنضيف الدالة هنا
-        // onToggleStatus={handleToggleStatus} 
+        onToggleStatus={handleToggleStatus} // تمرير دالة تبديل الحالة
         showEditButton={true}
         showDeleteButton={true}
         showActions={true}
         showFilter={true}
         searchKeys={["name", "description", "product_name"]}
         className="table-compact"
+        // ✨ الخطوة 4: تمرير حالات التحميل للـ DataTable
+        isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
+        isTogglingStatus={isTogglingStatus} // تمرير حالة زر الـ Toggle
       />
 
       {selectedRow && (
@@ -332,8 +410,15 @@ const Offer = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
+            // ✨ الخطوة 5: تمرير حالة التحميل لـ EditDialog
+            isLoading={isSaving}
           >
-            {/* Name */}
+            {/* Name, Description, Dates, Discount Type/Amount, Subscription Details, Setup Phase, Status, Product */}
+            
+            {/* ... (باقي حقول الإدخال كما هي في كودك الأصلي) ... */}
+            
+            <div className="max-h-[50vh] md:grid-cols-2 lg:grid-cols-3 !p-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                          {/* Name */}
             <label htmlFor="name" className="text-gray-400 !pb-3">
               Name
             </label>
@@ -428,24 +513,7 @@ const Offer = () => {
                 />
               </div>
               
-              {/* Status Field in Edit Dialog (if applicable) */}
-              <div>
-                <label htmlFor="status" className="text-gray-400 !pb-3">
-                  Status
-                </label>
-                <Select
-                  value={selectedRow?.status || "Active"}
-                  onValueChange={(value) => onChange("status", value)}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white !p-2">
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
             </div>
 
             {/* Product field - Full width */}
@@ -479,6 +547,8 @@ const Offer = () => {
                 </SelectContent>
               </Select>
             </div>
+              </div>
+
           </EditDialog>
 
           <DeleteDialog
@@ -486,6 +556,8 @@ const Offer = () => {
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
             name={selectedRow.name}
+            // ✨ الخطوة 5: تمرير حالة التحميل لـ DeleteDialog
+            isLoading={isDeleting}
           />
         </>
       )}

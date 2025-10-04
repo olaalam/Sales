@@ -28,6 +28,10 @@ const Leader = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
+  // ✨ الخطوة 1: إضافة حالات التحميل المنفصلة
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
@@ -63,7 +67,7 @@ const Leader = () => {
           leader_id: leader.leader_id?._id || null,
           target_name: leader.target_id?.name || "—",
           // Normalize status
-          status: leader.status || "Active", 
+          status: leader.status || "Active",
         };
       });
 
@@ -130,6 +134,7 @@ const Leader = () => {
     setIsDeleteOpen(true);
   };
 
+  // 📝 الخطوة 2: تحديث دالة الحفظ/التعديل لاستخدام isSaving
   const handleSave = async () => {
     if (!selectedRow) return;
 
@@ -139,7 +144,7 @@ const Leader = () => {
       name: name || "",
       email: email || "",
       // Use the status selected in the Edit Dialog (Active or inactive)
-      status: status || "Active", 
+      status: status || "Active",
       role: role || "Sales Leader",
     };
 
@@ -148,6 +153,11 @@ const Leader = () => {
     }
 
     console.log("Payload being sent:", payload);
+
+    // ✨ تفعيل حالة التحميل المنفصلة
+    setIsSaving(true);
+    // يمكنك إزالة الـ dispatch(showLoader()) هنا إذا أردت فقط تعطيل الأزرار
+    // dispatch(showLoader()); 
 
     try {
       const response = await fetch(
@@ -170,15 +180,24 @@ const Leader = () => {
       } else {
         const errorData = await response.json();
         console.error("Update failed:", errorData);
-        toast.error("Failed to update leader!");
+        toast.error(errorData.message || "Failed to update leader!");
       }
     } catch (error) {
       console.error("Error updating leader:", error);
       toast.error("Error occurred while updating leader!");
+    } finally {
+      // ✨ تعطيل حالة التحميل المنفصلة
+      setIsSaving(false);
+      // dispatch(hideLoader()); // إذا كنت تستخدم الـ Loader العام
     }
   };
 
+  // 📝 الخطوة 3: تحديث دالة الحذف لاستخدام isDeleting
   const handleDeleteConfirm = async () => {
+    // ✨ تفعيل حالة التحميل المنفصلة
+    setIsDeleting(true);
+    // dispatch(showLoader()); // إذا كنت تستخدم الـ Loader العام
+
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/leaders/${selectedRow.id}`,
@@ -194,23 +213,28 @@ const Leader = () => {
         setIsDeleteOpen(false);
         setSelectedRow(null);
       } else {
-        toast.error("Failed to delete leader!");
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to delete leader!");
       }
     } catch (error) {
       console.error("Error deleting leader:", error);
       toast.error("Error occurred while deleting leader!");
+    } finally {
+      // ✨ تعطيل حالة التحميل المنفصلة
+      setIsDeleting(false);
+      // dispatch(hideLoader()); // إذا كنت تستخدم الـ Loader العام
     }
   };
 
-  // 🔴 التعديل الأساسي هنا
+  // دالة تغيير الحالة (Toggle) ستبقى تستخدم الـ Loader العام لتجنب التعقيد
   const handleToggleStatus = async (row, newStatus) => {
     const { id } = row;
-    
+
     // 1. نحدد الحالة الجديدة بناءً على الحالة الحالية في الصف
     const currentStatus = row.status;
     // إذا كانت الحالة الحالية "Active"، نرسل "inactive"، وإلا نرسل "Active"
     const statusValue = currentStatus === "Active" ? "inactive" : "Active";
-    
+
     // Save old status for rollback in case of error
     const oldStatus = row.status;
 
@@ -221,6 +245,8 @@ const Leader = () => {
       )
     );
 
+    // نستخدم الـ Loader العام هنا
+    dispatch(showLoader());
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/leaders/${id}`,
@@ -231,7 +257,7 @@ const Leader = () => {
             ...getAuthHeaders(),
           },
           // 2. إرسال القيمة المعكوسة
-          body: JSON.stringify({ status: statusValue }), 
+          body: JSON.stringify({ status: statusValue }),
         }
       );
 
@@ -240,8 +266,8 @@ const Leader = () => {
       } else {
         const errorData = await response.json();
         console.error("Failed to update leader status:", errorData);
-        toast.error("Failed to update leader status!");
-        
+        toast.error(errorData.message || "Failed to update leader status!");
+
         // Rollback on error
         setleaders((prevleaders) =>
           prevleaders.map((leader) =>
@@ -252,13 +278,15 @@ const Leader = () => {
     } catch (error) {
       console.error("Error updating leader status:", error);
       toast.error("Error occurred while updating leader status!");
-      
+
       // Rollback on error
       setleaders((prevleaders) =>
         prevleaders.map((leader) =>
           leader.id === id ? { ...leader, status: oldStatus } : leader
         )
       );
+    } finally {
+      dispatch(hideLoader());
     }
   };
 
@@ -273,14 +301,20 @@ const Leader = () => {
     { key: "name", label: "Name" },
     { key: "email", label: "Email" },
     { key: "target_name", label: "Target Name" },
-    { 
-      key: "status", 
+    {
+      key: "status",
       label: "Status",
       render: (row) => (
-        <span className={row.status === "Active" ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
+        <span
+          className={
+            row.status === "Active"
+              ? "text-green-600 font-medium"
+              : "text-gray-500 font-medium"
+          }
+        >
           {row.status === "Active" ? "Active" : "Inactive"}
         </span>
-      )
+      ),
     },
   ];
 
@@ -315,6 +349,9 @@ const Leader = () => {
         filterOptions={filterOptionsForleaders}
         searchKeys={["name", "email", "target_name"]}
         className="table-compact"
+        // ✨ الخطوة 4: تمرير حالات التحميل للـ DataTable
+        isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
       />
       {selectedRow && (
         <>
@@ -325,6 +362,8 @@ const Leader = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
+            // ✨ الخطوة 5: تمرير حالة التحميل لـ EditDialog
+            isLoading={isSaving}
           >
             {/* Name */}
             <label htmlFor="name" className="text-gray-400 !pb-3">
@@ -363,7 +402,7 @@ const Leader = () => {
               className="!my-2 text-bg-primary !p-4"
               placeholder="Enter new password"
             />
-            
+
             {/* Status Field */}
             <div>
               <label
@@ -394,6 +433,8 @@ const Leader = () => {
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
             name={selectedRow.name}
+            // ✨ الخطوة 5: تمرير حالة التحميل لـ DeleteDialog
+            isLoading={isDeleting}
           />
         </>
       )}

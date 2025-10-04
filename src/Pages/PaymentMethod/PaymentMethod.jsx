@@ -24,6 +24,11 @@ const PaymentMethod = () => {
   // New state for Base64 image
   const [newImageBase64, setNewImageBase64] = useState(null);
 
+  // ✨ إضافة حالات التحميل المنفصلة
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(null); // يستخدم id الصف الذي يتم تبديل حالته
+
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
@@ -145,6 +150,7 @@ const PaymentMethod = () => {
     }
   }, []);
 
+  // 📝 تحديث دالة الحفظ/التعديل لاستخدام isSaving
   const handleSave = async () => {
     if (!selectedRow) return;
 
@@ -159,6 +165,9 @@ const PaymentMethod = () => {
     };
 
     console.log("Payload being sent:", payload);
+    
+    // ✨ تفعيل حالة التحميل
+    setIsSaving(true);
 
     try {
       const response = await fetch(
@@ -182,15 +191,22 @@ const PaymentMethod = () => {
       } else {
         const errorData = await response.json();
         console.error("Update failed:", errorData);
-        toast.error("Failed to update payment method!");
+        toast.error(errorData.message || "Failed to update payment method!");
       }
     } catch (error) {
       console.error("Error updating payment method:", error);
-      toast.error("Error occurred while updating payment method!");
+      toast.error(error.message || "Error occurred while updating payment method!");
+    } finally {
+      // ✨ تعطيل حالة التحميل
+      setIsSaving(false);
     }
   };
 
+  // 📝 تحديث دالة الحذف لاستخدام isDeleting
   const handleDeleteConfirm = async () => {
+    // ✨ تفعيل حالة التحميل
+    setIsDeleting(true);
+
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/payment-methods/${selectedRow.id}`,
@@ -207,32 +223,35 @@ const PaymentMethod = () => {
         );
         setIsDeleteOpen(false);
       } else {
-        toast.error("Failed to delete payment method!");
+        const errorData = await response.json();
+        console.error("Delete failed:", errorData);
+        toast.error(errorData.message || "Failed to delete payment method!");
       }
     } catch (error) {
       console.error("Error deleting payment method:", error);
-      toast.error("Error occurred while deleting payment method!");
+      toast.error(error.message || "Error occurred while deleting payment method!");
+    } finally {
+      // ✨ تعطيل حالة التحميل
+      setIsDeleting(false);
     }
   };
 
+  // 📝 تحديث دالة تبديل الحالة لاستخدام isTogglingStatus
   const handleToggleStatus = async (row) => {
     const { id } = row;
 
     const currentStatus = row.status;
-    
-    // 1. تحديد الحالة الجديدة للـ state (سلسلة نصية)
     const newStatusString = currentStatus === "Active" ? "Inactive" : "Active";
-    
-    // 2. تحديد القيمة التي سيتم إرسالها في الـ Payload (قيمة منطقية)
     const payloadStatus = newStatusString === "Active" ? true : false; 
-    
-    // Save old status for rollback in case of error
     const oldStatus = row.status;
 
-    // Optimistic update - تحديث الـ UI فوراً
+    // ✨ تفعيل حالة تحميل الزر الخاص بالصف المحدد
+    setIsTogglingStatus(id);
+
+    // Optimistic update
     setPaymentMethods((prevMethods) =>
       prevMethods.map((method) =>
-        method.id === id ? { ...method, status: newStatusString } : method // ⬅️ تحديث الحالة الجديدة كـ String 
+        method.id === id ? { ...method, status: newStatusString } : method 
       )
     );
 
@@ -245,8 +264,7 @@ const PaymentMethod = () => {
             "Content-Type": "application/json",
             ...getAuthHeaders(),
           },
-          // 3. إرسال القيمة المنطقية المطلوبة
-          body: JSON.stringify({ status: payloadStatus }), // ⬅️ إرسال قيمة منطقية
+          body: JSON.stringify({ status: payloadStatus }), // إرسال قيمة منطقية
         }
       );
 
@@ -256,7 +274,7 @@ const PaymentMethod = () => {
       else {
         const errorData = await response.json();
         console.error("Failed to update payment method status:", errorData);
-        toast.error("Failed to update payment method status!");
+        toast.error(errorData.message || "Failed to update payment method status!");
         
         // Rollback on error
         setPaymentMethods((prevMethods) =>
@@ -267,7 +285,7 @@ const PaymentMethod = () => {
       }
     } catch (error) {
       console.error("Error updating payment method status:", error);
-      toast.error("Error occurred while updating payment method status!");
+      toast.error(error.message || "Error occurred while updating payment method status!");
       
       // Rollback on error
       setPaymentMethods((prevMethods) =>
@@ -275,6 +293,9 @@ const PaymentMethod = () => {
           method.id === id ? { ...method, status: oldStatus } : method
         )
       );
+    } finally {
+      // ✨ تعطيل حالة تحميل الزر الخاص بالصف المحدد
+      setIsTogglingStatus(null);
     }
   };
 
@@ -295,7 +316,9 @@ const PaymentMethod = () => {
         <span className={row.status === "Active" ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
           {row.status === "Active" ? "Active" : "Inactive"}
         </span>
-      )
+      ),
+      isToggle: true, // إضافة زر تبديل الحالة
+      toggleKey: 'status'
     },
     { key: "logo", label: "Logo" },
   ];
@@ -332,6 +355,10 @@ const PaymentMethod = () => {
         filterOptions={filterOptionsForPaymentMethods}
         searchKeys={["name", "description"]}
         className="table-compact"
+        // ✨ تمرير حالات التحميل للـ DataTable
+        isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
+        isTogglingStatus={isTogglingStatus} 
       />
 
       {selectedRow && (
@@ -343,6 +370,8 @@ const PaymentMethod = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
+            // ✨ تمرير حالة التحميل لـ EditDialog
+            isLoading={isSaving}
           >
             <div className="space-y-4">
               <div>
@@ -374,20 +403,6 @@ const PaymentMethod = () => {
                 />
               </div>
 
-              <div>
-                <label htmlFor="status" className="text-gray-400 block mb-2">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  value={selectedRow?.status || "Inactive"}
-                  onChange={(e) => onChange("status", e.target.value)}
-                  className="!my-2 text-bg-primary !p-4 w-full border border-gray-300 rounded-md bg-white"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
 
               <div>
                 <label htmlFor="logo_file" className="text-gray-400 block !mb-2">
@@ -408,6 +423,8 @@ const PaymentMethod = () => {
                   accept="image/*"
                   onChange={handleLogoFileChange}
                   className="!my-2 text-bg-primary !ps-4 "
+                  // 💡 تعطيل الحقل إذا كانت هناك عملية حفظ/تحميل جارية
+                  disabled={isSaving} 
                 />
               </div>
             </div>
@@ -418,6 +435,8 @@ const PaymentMethod = () => {
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
             name={selectedRow.name}
+            // ✨ تمرير حالة التحميل لـ DeleteDialog
+            isLoading={isDeleting}
           />
         </>
       )}

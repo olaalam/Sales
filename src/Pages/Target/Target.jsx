@@ -26,7 +26,9 @@ const Target = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
+  // حالات التحميل المنفصلة
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
@@ -129,6 +131,7 @@ const Target = () => {
     console.log("Payload being sent:", payload);
 
     dispatch(showLoader());
+setIsSaving(true);
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/targets/${id}`,
@@ -166,11 +169,13 @@ const Target = () => {
       });
     } finally {
       dispatch(hideLoader());
+setIsSaving(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
     dispatch(showLoader());
+setIsDeleting(true);
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/targets/${selectedRow.id}`,
@@ -203,7 +208,8 @@ const Target = () => {
       });
     } finally {
       dispatch(hideLoader());
-    }
+setIsDeleting(false);
+    } 
   };
 
   // 💡 دالة التبديل تم تعديلها لتقلب الحالة بين "Active" و "inactive"
@@ -331,6 +337,8 @@ const Target = () => {
           filterOptions={filterOptionsForTargets}
           searchKeys={["name"]}
           className="table-compact"
+ isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
         />
 
         {selectedRow && (
@@ -342,6 +350,7 @@ const Target = () => {
               selectedRow={selectedRow}
               columns={columns}
               onChange={onChange}
+  isLoading={isSaving}
             >
               {/* Target Name Field */}
               <div className="!mb-4">
@@ -374,27 +383,7 @@ const Target = () => {
                 />
               </div>
 
-              {/* 💡 Status Field */}
-              <div className="!mb-4">
-                <label
-                  htmlFor="status"
-                  className="block text-gray-400 !mb-2"
-                >
-                  Status
-                </label>
-                <Select
-                  value={selectedRow?.status || "inactive"}
-                  onValueChange={(value) => onChange("status", value)}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
 
             </EditDialog>
 
@@ -403,6 +392,7 @@ const Target = () => {
               onOpenChange={setIsDeleteOpen}
               onDelete={handleDeleteConfirm}
               name={selectedRow.name}
+ isLoading={isDeleting}
             />
           </>
         )}

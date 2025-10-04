@@ -34,7 +34,9 @@ const SalesManagement = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  
+  // حالات التحميل المنفصلة
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   // New state variables for the approve dialog
   const [isApproveOpen, setIsApproveOpen] = useState(false);
   const [pointsValue, setPointsValue] = useState("");
@@ -63,7 +65,6 @@ const SalesManagement = () => {
       }
 
       const result = await response.json();
-      console.log("Full API response:", result);
 
       const formatted = result.data.data.sales.map((sale) => {
         const saleDate = new Date(sale.sale_date);
@@ -127,23 +128,34 @@ const SalesManagement = () => {
     const { id, lead_id, sales_id, item_type, status, product_id, offer_id } =
       selectedRow;
 
+    // 1. بناء الحمولة (Payload) الأساسية
     const payload = {
-      lead_id: lead_id || null,
-      sales_id: sales_id || null,
       item_type: item_type || "Product",
       status: status || "Pending",
     };
 
-    // Conditionally add product_id or offer_id to the payload
+    // 2. إضافة الحقول الاختيارية (IDs) فقط إذا كانت القيمة موجودة (وليست null/undefined)
+    if (lead_id) {
+      payload.lead_id = lead_id;
+    }
+
+    if (sales_id) {
+      payload.sales_id = sales_id;
+    }
+
+    // 3. إضافة حقل المنتج أو العرض بناءً على item_type
     if (item_type === "Product") {
-      payload.product_id = product_id || null;
-      payload.offer_id = null; // Ensure offer_id is null if not an offer
+      if (product_id) {
+        payload.product_id = product_id;
+      }
     } else if (item_type === "Offer") {
-      payload.offer_id = offer_id || null;
-      payload.product_id = null; // Ensure product_id is null if not a product
+      if (offer_id) {
+        payload.offer_id = offer_id;
+      }
     }
 
     console.log("Payload being sent:", payload);
+    setIsSaving(true);
 
     try {
       const response = await fetch(
@@ -171,10 +183,13 @@ const SalesManagement = () => {
     } catch (error) {
       console.error("Error updating sale:", error);
       toast.error("Error occurred while updating sale!");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/sales-management/${selectedRow.id}`,
@@ -196,12 +211,14 @@ const SalesManagement = () => {
     } catch (error) {
       console.error("Error deleting sale:", error);
       toast.error("Error occurred while deleting sale!");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleToggleStatus = async (row, newStatus) => {
     setSelectedRow(row); // Set the selected row to have its ID available
-    
+
     if (newStatus === "Approve") {
       setIsApproveOpen(true);
     } else {
@@ -237,8 +254,8 @@ const SalesManagement = () => {
   };
 
   const handleApproveAndSendPoints = async () => {
-    if (!selectedRow || !pointsValue || isNaN(pointsValue) || parseInt(pointsValue) < 0) {
-      toast.error("Please enter a valid number of points.");
+    if (!selectedRow || !pointsValue || isNaN(parseInt(pointsValue)) || parseInt(pointsValue) <= 0) {
+      toast.error("Please enter a valid number of points greater than zero.");
       return;
     }
 
@@ -335,6 +352,8 @@ const SalesManagement = () => {
         filterOptions={filterOptionsForSales}
         searchKeys={["lead_id", "sales_id", "product_id", "item_type"]}
         className="table-compact"
+        isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
       />
 
       {selectedRow && (
@@ -346,15 +365,16 @@ const SalesManagement = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
+              isLoading={isSaving}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* First Row */}
+              {/* First Row: Lead */}
               <div>
                 <label htmlFor="lead_id" className="text-gray-400 !pb-3">
                   Lead
                 </label>
                 <Select
-                  value={selectedRow?.lead_id || undefined}
+                  value={selectedRow?.lead_id || undefined} // 🌟 تم التأكد من استخدام || undefined
                   onValueChange={(value) => onChange("lead_id", value)}
                 >
                   <SelectTrigger className="!my-2 text-bg-primary !p-4 w-full">
@@ -379,12 +399,14 @@ const SalesManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Sales Person */}
               <div>
                 <label htmlFor="sales_id" className="text-gray-400 !pb-3">
                   Sales Person
                 </label>
                 <Select
-                  value={selectedRow?.sales_id || undefined}
+                  value={selectedRow?.sales_id || undefined} // 🌟 تم التأكد من استخدام || undefined
                   onValueChange={(value) => onChange("sales_id", value)}
                 >
                   <SelectTrigger className="!my-2 text-bg-primary !p-4 w-full">
@@ -410,7 +432,7 @@ const SalesManagement = () => {
                 </Select>
               </div>
 
-              {/* Second Row */}
+              {/* Second Row: Item Type */}
               <div>
                 <label htmlFor="item_type" className="text-gray-400 !pb-3">
                   Item Type
@@ -433,14 +455,14 @@ const SalesManagement = () => {
                 </Select>
               </div>
 
-              {/* Conditional field */}
+              {/* Conditional field: Product or Offer */}
               {selectedRow?.item_type === "Product" ? (
                 <div>
                   <label htmlFor="product_id" className="text-gray-400 !pb-3">
                     Product
                   </label>
                   <Select
-                    value={selectedRow?.product_id || undefined}
+                    value={selectedRow?.product_id || undefined} // 🌟 تم التأكد من استخدام || undefined
                     onValueChange={(value) => onChange("product_id", value)}
                   >
                     <SelectTrigger className="!my-2 text-bg-primary !p-4 w-full">
@@ -471,7 +493,7 @@ const SalesManagement = () => {
                     Offer
                   </label>
                   <Select
-                    value={selectedRow?.offer_id || undefined}
+                    value={selectedRow?.offer_id || undefined} // 🌟 تم التأكد من استخدام || undefined
                     onValueChange={(value) => onChange("offer_id", value)}
                   >
                     <SelectTrigger className="!my-2 text-bg-primary !p-4">
@@ -504,53 +526,60 @@ const SalesManagement = () => {
             open={isDeleteOpen}
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
+             isLoading={isDeleting}
             name={selectedRow.lead_id || `Sale ${selectedRow.id}`}
           />
         </>
       )}
 
       {/* New Dialog for "Approve" status */}
-<Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
-  <DialogContent className="sm:max-w-[425px] bg-white !p-5 rounded-lg shadow-lg">
-    <DialogHeader className="!pb-4 border-b border-gray-200">
-      <DialogTitle className="text-2xl font-extrabold text-bg-primary">Approve Sale</DialogTitle>
-      <DialogDescription className="text-gray-600 text-base !mt-2">
-        Enter the number of points to award for this sale.
-      </DialogDescription>
-    </DialogHeader>
-    <div className="grid gap-6 !py-6">
-      <div className="flex items-center gap-4">
-        <Label htmlFor="points" className="text-lg font-semibold text-bg-primary w-24 text-right">
-          Points
-        </Label>
-        <Input
-          id="points"
-          type="number"
-          value={pointsValue}
-          onChange={(e) => setPointsValue(e.target.value)}
-          className="flex-1 h-12 rounded-md border border-gray-300 focus:ring-2 focus:ring-bg-primary focus:border-transparent transition-all duration-200 !px-4"
-          
-        />
-      </div>
-    </div>
-    <DialogFooter className="flex justify-end gap-3 !pt-4 border-t border-gray-200">
-      <Button
-        className="!px-6 !py-3 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
-        variant="outline"
-        onClick={() => setIsApproveOpen(false)}
-      >
-        Cancel
-      </Button>
-      <Button
-        className="!px-6 !py-3 rounded-md bg-bg-primary hover:bg-teal-600 text-white font-semibold transition-colors duration-200 cursor-pointer"
-        type="button"
-        onClick={handleApproveAndSendPoints}
-      >
-        Send
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+      <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-white !p-5 rounded-lg shadow-lg">
+          <DialogHeader className="!pb-4 border-b border-gray-200">
+            <DialogTitle className="text-2xl font-extrabold text-bg-primary">Approve Sale</DialogTitle>
+            <DialogDescription className="text-gray-600 text-base !mt-2">
+              Enter the number of points to award for this sale.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 !py-6">
+            <div className="flex items-center gap-4">
+              <Label htmlFor="points" className="text-lg font-semibold text-bg-primary w-24 text-right">
+                Points
+              </Label>
+              <Input
+                id="points"
+                type="number"
+                value={pointsValue}
+                onChange={(e) => setPointsValue(e.target.value)}
+                className="flex-1 h-12 rounded-md border border-gray-300 focus:ring-2 focus:ring-bg-primary focus:border-transparent transition-all duration-200 !px-4"
+
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-3 !pt-4 border-t border-gray-200">
+            <Button
+              className="!px-6 !py-3 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
+              variant="outline"
+              onClick={() => setIsApproveOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="!px-6 !py-3 rounded-md bg-bg-primary hover:bg-teal-600 text-white font-semibold transition-colors duration-200 cursor-pointer"
+              type="button"
+              onClick={handleApproveAndSendPoints}
+              // 🛑 منطق التعطيل المعدل لزر الإرسال
+              disabled={
+                !pointsValue ||
+                isNaN(parseInt(pointsValue)) ||
+                parseInt(pointsValue) <= 0
+              }
+            >
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

@@ -21,11 +21,16 @@ const Sale = () => {
   const dispatch = useDispatch();
   const isLoading = useSelector((state) => state.loader.isLoading);
   const [sales, setsales] = useState([]);
-  const [leaders, setLeaders] = useState([]); // 🟢 هخزن هنا leaderOptions
+  const [leaders, setLeaders] = useState([]);
   const token = localStorage.getItem("token");
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  // حالات التحميل المنفصلة
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(null); // يستخدم id الصف الذي يتم تبديل حالته
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
@@ -52,7 +57,6 @@ const Sale = () => {
 
       const result = await response.json();
 
-      // 🟢 خزن leaderOptions في state
       if (result.data.data.leaderOptions) {
         setLeaders(result.data.data.leaderOptions);
       }
@@ -62,10 +66,10 @@ const Sale = () => {
           id: sale._id,
           name: sale.name,
           email: sale.email,
-          leader_id: sale.leader_id?._id || null,
+          // 👈 1. تم التعديل: استخدام "NULL_LEADER" بدلاً من ""
+          leader_id: sale.leader_id?._id || "NULL_LEADER",
           leader_name: sale.leader_id?.name || "—",
-          // تأكد من أن حالة الـ status نصية: "Active" أو "inactive"
-          status: sale.status === true || sale.status === "Active" ? "Active" : "inactive", 
+          status: sale.status === true || sale.status === "Active" ? "Active" : "Inactive", 
         };
       });
 
@@ -73,6 +77,7 @@ const Sale = () => {
     } catch (error) {
       console.error("Error fetching sales:", error);
       toast.error("Failed to load sales data");
+      setsales([]);
     } finally {
       dispatch(hideLoader());
     }
@@ -95,21 +100,21 @@ const Sale = () => {
   const handleSave = async () => {
     if (!selectedRow) return;
 
-    // 💡 إضافة 'status'
     const { id, name, email, leader_id, status, password } = selectedRow;
 
     const payload = {
       name: name || "",
       email: email || "",
-      leader_id: leader_id || null,
-      // 💡 تضمين 'status' كقيمة نصية
-      status: status || "Active", 
+      // 👈 3. تم التعديل: تحويل "NULL_LEADER" إلى null عند الإرسال
+      leader_id: leader_id === "NULL_LEADER" ? null : leader_id,
+      status: status === "Active" ? true : false, 
     };
     
-    // إذا كان هناك كلمة مرور جديدة
     if (password && password.trim()) {
       payload.password = password;
     }
+
+    setIsSaving(true);
 
     try {
       const response = await fetch(
@@ -132,15 +137,19 @@ const Sale = () => {
       } else {
         const errorData = await response.json();
         console.error("Update failed:", errorData);
-        toast.error("Failed to update sale!");
+        toast.error(errorData.message || "Failed to update sale!");
       }
     } catch (error) {
       console.error("Error updating sale:", error);
       toast.error("Error occurred while updating sale!");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
+
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/sales/${selectedRow.id}`,
@@ -155,30 +164,32 @@ const Sale = () => {
         setsales(sales.filter((sale) => sale.id !== selectedRow.id));
         setIsDeleteOpen(false);
       } else {
-        toast.error("Failed to delete sale!");
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to delete sale!");
       }
     } catch (error) {
       console.error("Error deleting sale:", error);
       toast.error("Error occurred while deleting sale!");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  // 💡 تم التعديل ليصبح مثل دالة handleToggleStatus في Leader
   const handleToggleStatus = async (row) => {
     const { id } = row;
 
-    // 1. نحدد الحالة الجديدة بناءً على الحالة الحالية في الصف
     const currentStatus = row.status;
-    // إذا كانت الحالة الحالية "Active"، نرسل "inactive"، وإلا نرسل "Active"
-    const statusValue = currentStatus === "Active" ? "inactive" : "Active";
+    const newStatusBoolean = currentStatus === "Active" ? false : true;
+    const newStatusString = newStatusBoolean ? "Active" : "Inactive";
     
-    // Save old status for rollback in case of error
     const oldStatus = row.status;
 
-    // Optimistic update - update UI immediately
+    setIsTogglingStatus(id);
+
+    // Optimistic update
     setsales((prevsales) =>
       prevsales.map((sale) =>
-        sale.id === id ? { ...sale, status: statusValue } : sale
+        sale.id === id ? { ...sale, status: newStatusString } : sale
       )
     );
 
@@ -191,8 +202,7 @@ const Sale = () => {
             "Content-Type": "application/json",
             ...getAuthHeaders(),
           },
-          // 2. إرسال القيمة المعكوسة
-          body: JSON.stringify({ status: statusValue }),
+          body: JSON.stringify({ status: newStatusBoolean }),
         }
       );
 
@@ -201,7 +211,7 @@ const Sale = () => {
       } else {
         const errorData = await response.json();
         console.error("Failed to update sale status:", errorData);
-        toast.error("Failed to update sale status!");
+        toast.error(errorData.message || "Failed to update sale status!");
         
         // Rollback on error
         setsales((prevsales) =>
@@ -220,8 +230,11 @@ const Sale = () => {
           sale.id === id ? { ...sale, status: oldStatus } : sale
         )
       );
+    } finally {
+      setIsTogglingStatus(null);
     }
   };
+
 
   const onChange = (key, value) => {
     setSelectedRow((prev) => ({
@@ -237,12 +250,13 @@ const Sale = () => {
     { 
       key: "status", 
       label: "Status",
-      // 💡 إضافة render لتنسيق عرض الحالة
       render: (row) => (
         <span className={row.status === "Active" ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
           {row.status === "Active" ? "Active" : "Inactive"}
         </span>
-      )
+      ),
+      isToggle: true, 
+      toggleKey: 'status'
     },
   ];
 
@@ -253,7 +267,7 @@ const Sale = () => {
       options: [
         { value: "all", label: "All" },
         { value: "Active", label: "Active" },
-        { value: "inactive", label: "Inactive" },
+        { value: "Inactive", label: "Inactive" },
       ],
     },
   ];
@@ -277,6 +291,9 @@ const Sale = () => {
         filterOptions={filterOptionsForsales}
         searchKeys={["name", "email", "leader_name"]}
         className="table-compact"
+        isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
+        isTogglingStatus={isTogglingStatus} 
       />
       {selectedRow && (
         <>
@@ -287,6 +304,7 @@ const Sale = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
+            isLoading={isSaving}
           >
             {/* Name */}
             <label htmlFor="name" className="text-gray-400 !pb-3">
@@ -298,6 +316,7 @@ const Sale = () => {
               onChange={(e) => onChange("name", e.target.value)}
               className="!my-2 text-bg-primary !p-4"
               placeholder="Enter sale name"
+              disabled={isSaving}
             />
 
             {/* Email */}
@@ -311,6 +330,7 @@ const Sale = () => {
               onChange={(e) => onChange("email", e.target.value)}
               className="!my-2 text-bg-primary !p-4"
               placeholder="Enter email address"
+              disabled={isSaving}
             />
 
             {/* Leader Select */}
@@ -318,13 +338,17 @@ const Sale = () => {
               Leader
             </label>
             <Select
-              value={selectedRow?.leader_id || ""}
+              // 👈 2. تم التعديل: استخدام "NULL_LEADER" كقيمة افتراضية
+              value={selectedRow?.leader_id || "NULL_LEADER"}
               onValueChange={(value) => onChange("leader_id", value)}
+              disabled={isSaving}
             >
               <SelectTrigger className="!my-2 text-bg-primary !p-4">
                 <SelectValue placeholder="Select a leader" />
               </SelectTrigger>
               <SelectContent className="bg-white !p-2">
+                {/* 👈 2. تم التعديل: استخدام "NULL_LEADER" كقيمة لـ SelectItem */}
+                <SelectItem value="NULL_LEADER">— No Leader —</SelectItem>
                 {leaders.map((leader) => (
                   <SelectItem key={leader._id} value={leader._id}>
                     {leader.name}
@@ -333,27 +357,7 @@ const Sale = () => {
               </SelectContent>
             </Select>
 
-            {/* Status Field */}
-            <div>
-              <label
-                htmlFor="status"
-                className="block text-gray-400 !pb-3"
-              >
-                Status
-              </label>
-              <Select
-                value={selectedRow?.status || "inactive"}
-                onValueChange={(value) => onChange("status", value)}
-              >
-                <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
 
             {/* Password */}
             <label htmlFor="password" className="text-gray-400 !pb-3">
@@ -365,7 +369,8 @@ const Sale = () => {
               value={selectedRow?.password || ""}
               onChange={(e) => onChange("password", e.target.value)}
               className="!my-2 text-bg-primary !p-4"
-              placeholder="Enter new password"
+              placeholder="Enter new password (optional)"
+              disabled={isSaving}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
@@ -376,6 +381,7 @@ const Sale = () => {
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
             name={selectedRow.name}
+            isLoading={isDeleting}
           />
         </>
       )}

@@ -18,7 +18,11 @@ const Commission = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
+  
+  // ✅ حالات التحميل المنفصلة موجودة بالفعل
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
@@ -64,7 +68,7 @@ const Commission = () => {
           name: commission.level_name || "",
           type: commission.type || "",
           amount: commission.amount || 0,
-          price_quarter: commission.point_threshold || 0,
+          point_threshold: commission.point_threshold || 0,
         }));
 
         setcommissions(formattedcommissions);
@@ -92,11 +96,11 @@ const Commission = () => {
     const completecommission = {
       ...commission,
       id: commission._id || commission.id,
-      // تأكد من وجود البيانات المطلوبة
-      level_name: commission.level_name || "",
+      // يتم استخدام 'level_name' و 'point_threshold' في الـ payload
+      level_name: commission.level_name || commission.name || "",
       type: commission.type || "",
       amount: commission.amount || 0,
-      price_quarter: commission.point_threshold || 0,
+      point_threshold: commission.point_threshold || commission.price_quarter || 0,
     };
 
     console.log("Editing commission:", completecommission);
@@ -109,6 +113,7 @@ const Commission = () => {
     setIsDeleteOpen(true);
   };
 
+  // 📝 تعديل دالة الحفظ
   const handleSave = async () => {
     if (!selectedRow) return;
 
@@ -124,7 +129,11 @@ const Commission = () => {
 
     console.log("Payload being sent:", payload);
 
-    dispatch(showLoader());
+    // ✨ تفعيل حالة التحميل المنفصلة لتعطيل الأزرار
+    setIsSaving(true);
+    // يمكنك الإبقاء على dispatch(showLoader()) إذا أردت ظهور FullPageLoader
+    // dispatch(showLoader()); 
+    
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/commissions/${id}`,
@@ -161,12 +170,19 @@ const Commission = () => {
         autoClose: 3000,
       });
     } finally {
-      dispatch(hideLoader());
+      // ✨ تعطيل حالة التحميل المنفصلة
+      setIsSaving(false);
+      // dispatch(hideLoader()); // إذا كنت تستخدم الـ Loader العام
     }
   };
 
+  // 📝 تعديل دالة الحذف
   const handleDeleteConfirm = async () => {
-    dispatch(showLoader());
+    // ✨ تفعيل حالة التحميل المنفصلة لتعطيل الأزرار
+    setIsDeleting(true);
+    // يمكنك الإبقاء على dispatch(showLoader()) إذا أردت ظهور FullPageLoader
+    // dispatch(showLoader()); 
+
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/commissions/${selectedRow.id}`,
@@ -200,7 +216,9 @@ const Commission = () => {
         autoClose: 3000,
       });
     } finally {
-      dispatch(hideLoader());
+      // ✨ تعطيل حالة التحميل المنفصلة
+      setIsDeleting(false);
+      // dispatch(hideLoader()); // إذا كنت تستخدم الـ Loader العام
     }
   };
 
@@ -235,8 +253,11 @@ const Commission = () => {
           showDeleteButton={true}
           showActions={true}
           showFilter={true}
-          searchKeys={["name"]} // مُصحح من commission_name إلى name
+          searchKeys={["name"]}
           className="table-compact"
+          // ✅ الحالات مُمررة بشكل صحيح
+          isLoadingEdit={isSaving}
+          isLoadingDelete={isDeleting}
         />
 
         {selectedRow && (
@@ -248,6 +269,8 @@ const Commission = () => {
               selectedRow={selectedRow}
               columns={columns}
               onChange={onChange}
+              // ✅ حالة التحميل مُمررة بشكل صحيح لتعطيل زر الحفظ داخل الحوار
+              isLoading={isSaving}
             >
               {/* commission Name Field */}
               <div className="!mb-4">
@@ -259,6 +282,7 @@ const Commission = () => {
                 </label>
                 <Input
                   id="level_name"
+                  // يُفضل استخدام level_name مباشرة هنا
                   value={selectedRow?.level_name || ""}
                   onChange={(e) => onChange("level_name", e.target.value)}
                   className="text-bg-primary !p-4"
@@ -266,7 +290,7 @@ const Commission = () => {
                 />
               </div>
 
-              {/* commission description Field */}
+              {/* commission type Field */}
               <div className="!mb-4">
                 <label htmlFor="type" className="block text-gray-400 !mb-2">
                   commission type
@@ -274,15 +298,14 @@ const Commission = () => {
                 <Input
                   id="type"
                   type="text"
-                  value={selectedRow?.type || 0}
+                  value={selectedRow?.type || ""}
                   onChange={(e) => onChange("type", e.target.value)}
                   className="text-bg-primary !p-4"
                   placeholder="Enter commission type"
-                  min="0"
                 />
               </div>
 
-              {/* commission price_month Field */}
+              {/* commission amount Field */}
               <div className="!mb-4">
                 <label htmlFor="amount" className="block text-gray-400 !mb-2">
                   Amount
@@ -299,17 +322,18 @@ const Commission = () => {
                   min="0"
                 />
               </div>
-              {/* commission price_quarter Field */}
+              {/* commission point_threshold Field */}
               <div className="!mb-4">
                 <label
                   htmlFor="point_threshold"
                   className="block text-gray-400 !mb-2"
                 >
-                  point_threshold
+                  Point Threshold
                 </label>
                 <Input
                   id="point_threshold"
                   type="number"
+                  // يُفضل استخدام point_threshold مباشرة هنا
                   value={selectedRow?.point_threshold || 0}
                   onChange={(e) =>
                     onChange("point_threshold", parseFloat(e.target.value) || 0)
@@ -326,6 +350,8 @@ const Commission = () => {
               onOpenChange={setIsDeleteOpen}
               onDelete={handleDeleteConfirm}
               name={selectedRow.name}
+              // ✅ حالة التحميل مُمررة بشكل صحيح لتعطيل زر الحذف داخل الحوار
+              isLoading={isDeleting}
             />
           </>
         )}
