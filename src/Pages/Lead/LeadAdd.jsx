@@ -37,7 +37,7 @@ export default function LeadAdd() {
   const fetchOptions = async () => {
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leads/",
+        "https://negotia.wegostation.com/api/admin/leads/",
         {
           method: "GET",
           headers: {
@@ -113,7 +113,7 @@ export default function LeadAdd() {
 
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leads/",
+        "https://negotia.wegostation.com/api/admin/leads/",
         {
           method: "POST",
           headers: {

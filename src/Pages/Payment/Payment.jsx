@@ -41,7 +41,7 @@ const Payment = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payments/",
+        "https://negotia.wegostation.com/api/admin/payments/",
         {
           method: "GET",
           headers: {

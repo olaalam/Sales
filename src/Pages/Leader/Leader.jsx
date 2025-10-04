@@ -36,7 +36,7 @@ const Leader = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leaders/",
+        "https://negotia.wegostation.com/api/admin/leaders/",
         {
           method: "GET",
           headers: {
@@ -54,8 +54,6 @@ const Leader = () => {
       const result = await response.json();
 
       const formatted = result.data.data.map((leader) => {
-        const createdDate = new Date(leader.created_at);
-
         return {
           id: leader._id,
           name: leader.name,
@@ -64,7 +62,8 @@ const Leader = () => {
           leader_name: leader.leader_id?.name || "—",
           leader_id: leader.leader_id?._id || null,
           target_name: leader.target_id?.name || "—",
-          status: leader.status || "Active",
+          // Normalize status
+          status: leader.status || "Active", 
         };
       });
 
@@ -80,7 +79,7 @@ const Leader = () => {
   const fetchTargets = async () => {
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/targets/",
+        "https://negotia.wegostation.com/api/admin/targets/",
         {
           method: "GET",
           headers: {
@@ -139,7 +138,8 @@ const Leader = () => {
     const payload = {
       name: name || "",
       email: email || "",
-      status: status || "Active",
+      // Use the status selected in the Edit Dialog (Active or inactive)
+      status: status || "Active", 
       role: role || "Sales Leader",
     };
 
@@ -151,7 +151,7 @@ const Leader = () => {
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leaders/${id}`,
+        `https://negotia.wegostation.com/api/admin/leaders/${id}`,
         {
           method: "PUT",
           headers: {
@@ -163,7 +163,7 @@ const Leader = () => {
       );
 
       if (response.ok) {
-        toast.success("leader updated successfully!");
+        toast.success("Leader updated successfully!");
         await fetchleaders();
         setIsEditOpen(false);
         setSelectedRow(null);
@@ -181,7 +181,7 @@ const Leader = () => {
   const handleDeleteConfirm = async () => {
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leaders/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/leaders/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -189,9 +189,10 @@ const Leader = () => {
       );
 
       if (response.ok) {
-        toast.success("leader deleted successfully!");
+        toast.success("Leader deleted successfully!");
         setleaders(leaders.filter((leader) => leader.id !== selectedRow.id));
         setIsDeleteOpen(false);
+        setSelectedRow(null);
       } else {
         toast.error("Failed to delete leader!");
       }
@@ -201,38 +202,63 @@ const Leader = () => {
     }
   };
 
+  // 🔴 التعديل الأساسي هنا
   const handleToggleStatus = async (row, newStatus) => {
     const { id } = row;
-    const statusValue = newStatus === 1 ? "Active" : "inactive";
+    
+    // 1. نحدد الحالة الجديدة بناءً على الحالة الحالية في الصف
+    const currentStatus = row.status;
+    // إذا كانت الحالة الحالية "Active"، نرسل "inactive"، وإلا نرسل "Active"
+    const statusValue = currentStatus === "Active" ? "inactive" : "Active";
+    
+    // Save old status for rollback in case of error
+    const oldStatus = row.status;
+
+    // Optimistic update - update UI immediately
+    setleaders((prevleaders) =>
+      prevleaders.map((leader) =>
+        leader.id === id ? { ...leader, status: statusValue } : leader
+      )
+    );
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leaders/${id}`,
+        `https://negotia.wegostation.com/api/admin/leaders/${id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             ...getAuthHeaders(),
           },
-          body: JSON.stringify({ status: statusValue }),
+          // 2. إرسال القيمة المعكوسة
+          body: JSON.stringify({ status: statusValue }), 
         }
       );
 
       if (response.ok) {
-        toast.success("leader status updated successfully!");
-        setleaders((prevleaders) =>
-          prevleaders.map((leader) =>
-            leader.id === id ? { ...leader, status: statusValue } : leader
-          )
-        );
+        toast.success("Leader status updated successfully!");
       } else {
         const errorData = await response.json();
         console.error("Failed to update leader status:", errorData);
         toast.error("Failed to update leader status!");
+        
+        // Rollback on error
+        setleaders((prevleaders) =>
+          prevleaders.map((leader) =>
+            leader.id === id ? { ...leader, status: oldStatus } : leader
+          )
+        );
       }
     } catch (error) {
       console.error("Error updating leader status:", error);
       toast.error("Error occurred while updating leader status!");
+      
+      // Rollback on error
+      setleaders((prevleaders) =>
+        prevleaders.map((leader) =>
+          leader.id === id ? { ...leader, status: oldStatus } : leader
+        )
+      );
     }
   };
 
@@ -247,7 +273,15 @@ const Leader = () => {
     { key: "name", label: "Name" },
     { key: "email", label: "Email" },
     { key: "target_name", label: "Target Name" },
-    { key: "status", label: "Status" },
+    { 
+      key: "status", 
+      label: "Status",
+      render: (row) => (
+        <span className={row.status === "Active" ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
+          {row.status === "Active" ? "Active" : "Inactive"}
+        </span>
+      )
+    },
   ];
 
   const filterOptionsForleaders = [
@@ -329,6 +363,28 @@ const Leader = () => {
               className="!my-2 text-bg-primary !p-4"
               placeholder="Enter new password"
             />
+            
+            {/* Status Field */}
+            <div>
+              <label
+                htmlFor="status"
+                className="block text-sm font-medium text-gray-700 !pb-3"
+              >
+                Status
+              </label>
+              <Select
+                value={selectedRow?.status || "inactive"}
+                onValueChange={(value) => onChange("status", value)}
+              >
+                <SelectTrigger className="!my-2 text-bg-primary !p-4">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
           </EditDialog>

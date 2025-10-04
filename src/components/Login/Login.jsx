@@ -22,7 +22,7 @@ const Login = () => {
     const localUser = localStorage.getItem("user");
     if (localUser) {
       toast.info("You are already logged in");
-      navigate("/", { replace: true });
+      navigate("/users", { replace: true });
     }
   }, [navigate]);
 

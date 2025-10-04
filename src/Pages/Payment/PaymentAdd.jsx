@@ -39,7 +39,7 @@ export default function PaymentAdd() {
   const fetchAllOptions = async () => {
     dispatch(showLoader());
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payments/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/payments/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +106,7 @@ export default function PaymentAdd() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payments/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/payments/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

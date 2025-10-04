@@ -29,7 +29,7 @@ const Product = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/products/",
+        "https://negotia.wegostation.com/api/admin/products/",
         {
           method: "GET",
           headers: {
@@ -136,7 +136,7 @@ const payload = {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/products/${id}`,
+        `https://negotia.wegostation.com/api/admin/products/${id}`,
         {
           method: "PUT",
           headers: {
@@ -178,7 +178,7 @@ const payload = {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/products/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/products/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -211,53 +211,75 @@ const payload = {
     }
   };
 
-  const handleToggleStatus = async (row, newStatus) => {
-    const { id } = row;
-    const statusValue = newStatus === 1 ? "Active" : "inactive";
 
-    dispatch(showLoader());
-    try {
-      const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/products/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({ status: statusValue }),
-        }
-      );
+ const handleToggleStatus = async (row) => {
+ const { id, status: currentStatusString } = row;
 
-      if (response.ok) {
-        toast.success("product status updated successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        // تحديث الحالة محلياً
-        setproducts((prevproducts) =>
-          prevproducts.map((product) =>
-            product.id === id ? { ...product, status: statusValue } : product
-          )
-        );
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to update product status:", errorData);
-        toast.error(errorData.message || "Failed to update product status!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating product status:", error);
-      toast.error("Error occurred while updating product status!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    } finally {
-      dispatch(hideLoader());
-    }
-  };
+
+ const isCurrentlyActive = currentStatusString === "Active";
+ const newStatusBoolean = !isCurrentlyActive; 
+
+ const newStatusString = newStatusBoolean ? "Active" : "inactive";
+
+ const oldStatusString = currentStatusString;
+
+ setproducts((prevproducts) =>
+ prevproducts.map((product) =>
+ product.id === id ? { ...product, status: newStatusString } : product
+ )
+ );
+
+ dispatch(showLoader());
+ try {
+ const response = await fetch(
+ `https://negotia.wegostation.com/api/admin/products/${id}`,
+ {
+  method: "PUT",
+  headers: {
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+  },
+  // 💡 تصحيح: إرسال القيمة المنطقية
+  body: JSON.stringify({ status: newStatusBoolean }), // ⬅️ تم التعديل هنا
+ }
+ );
+
+ if (response.ok) {
+ toast.success("product status updated successfully!", {
+  position: "top-right",
+  autoClose: 3000,
+ });
+ // إذا نجح الطلب، لا داعي للتحديث المحلي مجدداً فقد تم في الخطوة التفاؤلية
+ } else {
+ const errorData = await response.json();
+ console.error("Failed to update product status:", errorData);
+ toast.error(errorData.message || "Failed to update product status!", {
+  position: "top-right",
+  autoClose: 3000,
+ });
+ // التراجع (Rollback) في حالة الخطأ
+ setproducts((prevproducts) =>
+  prevproducts.map((product) =>
+  product.id === id ? { ...product, status: oldStatusString } : product
+  )
+ );
+ }
+ } catch (error) {
+ console.error("Error updating product status:", error);
+ toast.error("Error occurred while updating product status!", {
+ position: "top-right",
+ autoClose: 3000,
+ });
+ // التراجع (Rollback) في حالة الخطأ
+ setproducts((prevproducts) =>
+ prevproducts.map((product) =>
+  product.id === id ? { ...product, status: oldStatusString } : product
+ )
+ );
+ } finally {
+ dispatch(hideLoader());
+ }
+ };
 
   const onChange = (key, value) => {
     console.log(`Changing ${key} to:`, value);

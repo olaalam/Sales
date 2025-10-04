@@ -34,7 +34,7 @@ export default function SalesManagementAdd() {
   const fetchOptions = async () => {
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sales-management/",
+        "https://negotia.wegostation.com/api/admin/sales-management/",
         {
           method: "GET",
           headers: {
@@ -131,7 +131,7 @@ export default function SalesManagementAdd() {
 
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sales-management/",
+        "https://negotia.wegostation.com/api/admin/sales-management/",
         {
           method: "POST",
           headers: {

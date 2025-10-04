@@ -31,7 +31,7 @@ export default function SalesAdd() {
   // ✅ Fetch targets (optional)
   const fetchTargets = async () => {
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/targets/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/targets/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +62,7 @@ export default function SalesAdd() {
   // ✅ Fetch leaders
   const fetchLeaders = async () => {
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leaders/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/leaders/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -125,7 +125,7 @@ export default function SalesAdd() {
     }
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sales/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/sales/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

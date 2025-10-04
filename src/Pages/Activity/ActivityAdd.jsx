@@ -51,7 +51,7 @@ export default function ActivityAdd() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/activities/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/activities/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

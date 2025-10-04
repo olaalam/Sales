@@ -36,7 +36,7 @@ const Lead = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leads/",
+        "https://negotia.wegostation.com/api/admin/leads/",
         {
           method: "GET",
           headers: {
@@ -139,7 +139,7 @@ const Lead = () => {
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leads/${id}`,
+        `https://negotia.wegostation.com/api/admin/leads/${id}`,
         {
           method: "PUT",
           headers: {
@@ -169,7 +169,7 @@ const Lead = () => {
   const handleDeleteConfirm = async () => {
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leads/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/leads/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -192,7 +192,7 @@ const Lead = () => {
   const handleToggleStatus = async (row, newStatus) => {
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leads/${row.id}`,
+        `https://negotia.wegostation.com/api/admin/leads/${row.id}`,
         {
           method: "PUT",
           headers: {

@@ -84,7 +84,7 @@ const payload = {
 
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payment-methods",
+        "https://negotia.wegostation.com/api/admin/payment-methods",
         {
           method: "POST",
           headers: {

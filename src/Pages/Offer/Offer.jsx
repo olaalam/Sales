@@ -56,7 +56,7 @@ const Offer = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/offers/",
+        "https://negotia.wegostation.com/api/admin/offers/",
         {
           method: "GET",
           headers: {
@@ -74,18 +74,22 @@ const Offer = () => {
       const result = await response.json();
 
       const formatted = result.data.data.map((offer) => {
+        // يمكنك إضافة حالة افتراضية هنا إذا لم تكن موجودة في الـ API
+        const status = offer.status || 'Active'; 
+        
         return {
           id: offer._id,
           name: offer.name,
           description: offer.description || "—",
-          start_date: offer.start_date ? formatDateForInput(offer.start_date) : "",
-          end_date: offer.end_date ? formatDateForInput(offer.end_date) : "",
+          start_date: offer.start_date ? formatDateForInput(offer.start_date) : "—",
+          end_date: offer.end_date ? formatDateForInput(offer.end_date) : "—",
           discount_type: offer.discount_type || "—",
           discount_amount: offer.discount_amount || 0,
           subscription_details: offer.subscription_details || "—",
           product_name: offer.product_id?.name || "—",
           setup_phase: offer.setup_phase || "—",
           product_id: offer.product_id?._id || null,
+          status: status, // إضافة Status
         };
       });
 
@@ -102,7 +106,7 @@ const Offer = () => {
   const fetchproducts = async () => {
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/products/",
+        "https://negotia.wegostation.com/api/admin/products/",
         {
           method: "GET",
           headers: {
@@ -114,9 +118,7 @@ const Offer = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("products API response:", result); // للتحقق من البيانات
-
-        // Handle different possible response structures
+        
         let productsData = [];
         if (result.data && Array.isArray(result.data)) {
           productsData = result.data;
@@ -131,22 +133,19 @@ const Offer = () => {
         }
 
         setproducts(productsData);
-        console.log("products set:", productsData);
       } else {
         console.error("Failed to fetch products:", response.status);
-        // Set empty array if products API fails
         setproducts([]);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
-      // Set empty array if products API fails
       setproducts([]);
     }
   };
 
   useEffect(() => {
     fetchoffers();
-    fetchproducts(); // تفعيل استدعاء الـ products
+    fetchproducts(); 
   }, []);
 
   const handleEdit = (offer) => {
@@ -173,6 +172,7 @@ const Offer = () => {
       start_date,
       end_date,
       product_id,
+      status // تضمين الحالة في حالة الإضافة
     } = selectedRow;
 
     const payload = {
@@ -181,15 +181,17 @@ const Offer = () => {
       start_date: start_date || "",
       end_date: end_date || "",
       discount_type: discount_type || "",
-      discount_amount: discount_amount || 0,
+      // التأكد من أن القيمة هي رقم
+      discount_amount: Number(discount_amount) || 0, 
       subscription_details: subscription_details || "",
       setup_phase: setup_phase || "",
       product_id: product_id || null,
+      status: status || 'Active',
     };
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/offers/${id}`,
+        `https://negotia.wegostation.com/api/admin/offers/${id}`,
         {
           method: "PUT",
           headers: {
@@ -208,8 +210,6 @@ const Offer = () => {
       } else {
         const errorData = await response.json();
         console.error("Update failed:", errorData);
-
-        // Extract the error message properly
         const errorMessage =
           errorData?.error?.message ||
           errorData?.message ||
@@ -227,7 +227,7 @@ const Offer = () => {
   const handleDeleteConfirm = async () => {
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/offers/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/offers/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -242,7 +242,6 @@ const Offer = () => {
         const errorData = await response.json();
         console.error("Delete failed:", errorData);
 
-        // Extract the error message properly
         const errorMessage =
           errorData?.error?.message ||
           errorData?.message ||
@@ -264,16 +263,42 @@ const Offer = () => {
     }));
   };
 
+  // 💡 الأعمدة المحسّنة لعرض أسرع وأوضح
   const columns = [
-    { key: "name", label: "Name" },
-    { key: "description", label: "Description" },
-    { key: "start_date", label: "Start Date" },
-    { key: "end_date", label: "End Date" },
-    { key: "discount_type", label: "Discount Type" },
-    { key: "discount_amount", label: "Discount Amount" },
-    { key: "subscription_details", label: "Subscription Details" },
-    { key: "setup_phase", label: "Setup Phase" },
-    { key: "product_name", label: "product Name" },
+    { key: "name", label: "Offer Name" },
+    { 
+      key: "discount_info", 
+      label: "Discount",
+      // دمج نوع الخصم ومقداره في عمود واحد
+      render: (row) => (
+        <span className="font-medium">
+          {row.discount_amount} {row.discount_type === 'percentage' ? '%' : 'Value'}
+        </span>
+      )
+    },
+    { 
+      key: "dates", 
+      label: "Duration",
+      // دمج تاريخ البدء والانتهاء
+      render: (row) => (
+        <span className="text-sm text-gray-600">
+          {row.start_date} to {row.end_date}
+        </span>
+      )
+    },
+    { key: "product_name", label: "Product" },
+    { 
+      key: "status", 
+      label: "Status",
+      // عرض الحالة (افتراضياً: Active)
+      render: (row) => (
+        <span className={row.status === "Active" ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
+          {row.status === "Active" ? "Active" : "Inactive"}
+        </span>
+      ),
+      isToggle: true, // إضافة زر تبديل الحالة
+      toggleKey: 'status'
+    },
   ];
 
   return (
@@ -288,6 +313,8 @@ const Offer = () => {
         addRoute="/offer/add"
         onEdit={handleEdit}
         onDelete={handleDelete}
+        // على افتراض أنك قد تحتاج إلى تبديل الحالة مستقبلاً، سنضيف الدالة هنا
+        // onToggleStatus={handleToggleStatus} 
         showEditButton={true}
         showDeleteButton={true}
         showActions={true}
@@ -352,6 +379,24 @@ const Offer = () => {
               </div>
 
               <div>
+                <label htmlFor="discount_type" className="text-gray-400 !pb-3">
+                  Discount Type
+                </label>
+                <Select
+                  value={selectedRow?.discount_type || ""}
+                  onValueChange={(value) => onChange("discount_type", value)}
+                >
+                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
+                    <SelectValue placeholder="Select discount_type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white !p-2">
+                    <SelectItem value="percentage">Percentage</SelectItem>
+                    <SelectItem value="value">Value</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <label className="text-gray-400 !pb-3">Discount Amount</label>
                 <Input
                   type="number"
@@ -373,6 +418,7 @@ const Offer = () => {
                   className="!my-2 text-bg-primary !p-4"
                 />
               </div>
+
               <div>
                 <label className="text-gray-400 !pb-3">Setup Phase</label>
                 <Input
@@ -381,21 +427,22 @@ const Offer = () => {
                   className="!my-2 text-bg-primary !p-4"
                 />
               </div>
-
+              
+              {/* Status Field in Edit Dialog (if applicable) */}
               <div>
-                <label htmlFor="discount_type" className="text-gray-400 !pb-3">
-                  Discount Type
+                <label htmlFor="status" className="text-gray-400 !pb-3">
+                  Status
                 </label>
                 <Select
-                  value={selectedRow?.discount_type || ""}
-                  onValueChange={(value) => onChange("discount_type", value)}
+                  value={selectedRow?.status || "Active"}
+                  onValueChange={(value) => onChange("status", value)}
                 >
                   <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select discount_type" />
+                    <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent className="bg-white !p-2">
-                    <SelectItem value="percentage">Percentage</SelectItem>
-                    <SelectItem value="value">Value</SelectItem>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

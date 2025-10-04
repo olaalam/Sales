@@ -58,7 +58,7 @@ export default function CommissionAdd() {
 
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/commissions/",
+        "https://negotia.wegostation.com/api/admin/commissions/",
         {
           method: "POST",
           headers: {

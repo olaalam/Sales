@@ -48,7 +48,7 @@ const PaymentMethod = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payment-methods/",
+        "https://negotia.wegostation.com/api/admin/payment-methods/",
         {
           method: "GET",
           headers: {
@@ -72,9 +72,9 @@ const PaymentMethod = () => {
         )
           .toString()
           .padStart(2, "0")}/${createdDate
-          .getDate()
-          .toString()
-          .padStart(2, "0")}`;
+            .getDate()
+            .toString()
+            .padStart(2, "0")}`;
 
         // Create logo avatar
         const logo = (
@@ -93,6 +93,7 @@ const PaymentMethod = () => {
           id: method._id,
           name: method.name,
           description: method.description,
+          // تخزين الحالة كسلسلة نصية للعرض والتحرير
           status:
             method.status === "true" || method.status === true
               ? "Active"
@@ -149,10 +150,11 @@ const PaymentMethod = () => {
 
     const { id, name, description, status } = selectedRow;
 
+    // 💡 تصحيح: إرسال القيمة المنطقية true/false
     const payload = {
       name: name || "",
       description: description || "",
-      status: status === "Active" ? "true" : "false",
+      status: status === "Active" ? true : false, // ⬅️ إرسال قيمة منطقية
       logo_url: newImageBase64 || selectedRow.logo_url || "",
     };
 
@@ -160,7 +162,7 @@ const PaymentMethod = () => {
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payment-methods/${id}`,
+        `https://negotia.wegostation.com/api/admin/payment-methods/${id}`,
         {
           method: "PUT",
           headers: {
@@ -191,7 +193,7 @@ const PaymentMethod = () => {
   const handleDeleteConfirm = async () => {
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payment-methods/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/payment-methods/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -213,43 +215,66 @@ const PaymentMethod = () => {
     }
   };
 
-  const handleToggleStatus = async (row, newStatus) => {
+  const handleToggleStatus = async (row) => {
     const { id } = row;
-    const statusValue = newStatus === 1 ? "true" : "false";
+
+    const currentStatus = row.status;
+    
+    // 1. تحديد الحالة الجديدة للـ state (سلسلة نصية)
+    const newStatusString = currentStatus === "Active" ? "Inactive" : "Active";
+    
+    // 2. تحديد القيمة التي سيتم إرسالها في الـ Payload (قيمة منطقية)
+    const payloadStatus = newStatusString === "Active" ? true : false; 
+    
+    // Save old status for rollback in case of error
+    const oldStatus = row.status;
+
+    // Optimistic update - تحديث الـ UI فوراً
+    setPaymentMethods((prevMethods) =>
+      prevMethods.map((method) =>
+        method.id === id ? { ...method, status: newStatusString } : method // ⬅️ تحديث الحالة الجديدة كـ String 
+      )
+    );
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/payment-methods/${id}`,
+        `https://negotia.wegostation.com/api/admin/payment-methods/${id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             ...getAuthHeaders(),
           },
-          body: JSON.stringify({ status: statusValue }),
+          // 3. إرسال القيمة المنطقية المطلوبة
+          body: JSON.stringify({ status: payloadStatus }), // ⬅️ إرسال قيمة منطقية
         }
       );
 
       if (response.ok) {
         toast.success("Payment method status updated successfully!");
-        setPaymentMethods((prevMethods) =>
-          prevMethods.map((method) =>
-            method.id === id
-              ? {
-                  ...method,
-                  status: statusValue === "true" ? "Active" : "Inactive",
-                }
-              : method
-          )
-        );
-      } else {
+      }
+      else {
         const errorData = await response.json();
         console.error("Failed to update payment method status:", errorData);
         toast.error("Failed to update payment method status!");
+        
+        // Rollback on error
+        setPaymentMethods((prevMethods) =>
+          prevMethods.map((method) =>
+            method.id === id ? { ...method, status: oldStatus } : method
+          )
+        );
       }
     } catch (error) {
       console.error("Error updating payment method status:", error);
       toast.error("Error occurred while updating payment method status!");
+      
+      // Rollback on error
+      setPaymentMethods((prevMethods) =>
+        prevMethods.map((method) =>
+          method.id === id ? { ...method, status: oldStatus } : method
+        )
+      );
     }
   };
 
@@ -263,7 +288,15 @@ const PaymentMethod = () => {
   const columns = [
     { key: "name", label: "Name" },
     { key: "description", label: "Description" },
-    { key: "status", label: "Status" },
+    { 
+      key: "status", 
+      label: "Status",
+      render: (row) => (
+        <span className={row.status === "Active" ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
+          {row.status === "Active" ? "Active" : "Inactive"}
+        </span>
+      )
+    },
     { key: "logo", label: "Logo" },
   ];
 
@@ -339,6 +372,21 @@ const PaymentMethod = () => {
                   className="!my-2 text-bg-primary !p-4 min-h-[100px]"
                   placeholder="Enter payment method description"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="status" className="text-gray-400 block mb-2">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  value={selectedRow?.status || "Inactive"}
+                  onChange={(e) => onChange("status", e.target.value)}
+                  className="!my-2 text-bg-primary !p-4 w-full border border-gray-300 rounded-md bg-white"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
               </div>
 
               <div>

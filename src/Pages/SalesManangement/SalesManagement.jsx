@@ -47,7 +47,7 @@ const SalesManagement = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sales-management/",
+        "https://negotia.wegostation.com/api/admin/sales-management/",
         {
           method: "GET",
           headers: {
@@ -147,7 +147,7 @@ const SalesManagement = () => {
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sales-management/${id}`,
+        `https://negotia.wegostation.com/api/admin/sales-management/${id}`,
         {
           method: "PUT",
           headers: {
@@ -177,7 +177,7 @@ const SalesManagement = () => {
   const handleDeleteConfirm = async () => {
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sales-management/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/sales-management/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -208,7 +208,7 @@ const SalesManagement = () => {
       // Logic for 'Reject' or 'Pending'
       try {
         const response = await fetch(
-          `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sales-management/${row.id}`,
+          `https://negotia.wegostation.com/api/admin/sales-management/${row.id}`,
           {
             method: "PUT",
             headers: {
@@ -244,7 +244,7 @@ const SalesManagement = () => {
 
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/approve-sale/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/approve-sale/${selectedRow.id}`,
         {
           method: "PUT",
           headers: {

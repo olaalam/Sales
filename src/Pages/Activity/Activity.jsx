@@ -7,7 +7,6 @@ import EditDialog from "@/components/EditDialog";
 import DeleteDialog from "@/components/DeleteDialog";
 import { useDispatch } from "react-redux";
 import { showLoader, hideLoader } from "@/Store/LoaderSpinner";
-// import FullPageLoader from "@/components/Loading";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,7 +18,6 @@ import {
 
 const Activity = () => {
   const dispatch = useDispatch();
-  // const isLoading = useSelector((state) => state.loader.isLoading);
   const [activities, setActivities] = useState([]);
   const token = localStorage.getItem("token");
   const [selectedRow, setSelectedRow] = useState(null);
@@ -35,7 +33,7 @@ const Activity = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/activities/",
+        "https://negotia.wegostation.com/api/admin/activities/",
         {
           method: "GET",
           headers: {
@@ -49,7 +47,6 @@ const Activity = () => {
         const result = await response.json();
         console.log("Activities API response:", result);
 
-        // Handle different possible response structures
         let activitiesData = [];
         if (result.data && Array.isArray(result.data)) {
           activitiesData = result.data;
@@ -63,13 +60,12 @@ const Activity = () => {
           activitiesData = result;
         }
 
-        // تحويل _id إلى id للتوافق مع باقي الكود وتنظيف البيانات
-        const formattedActivities = activitiesData.map(activity => ({
+        const formattedActivities = activitiesData.map((activity) => ({
           ...activity,
           id: activity._id || activity.id,
           name: activity.name || "",
-          // تحويل الحالة إلى boolean
-          status: activity.status === true || activity.status === "true"
+          // تخزين الحالة كقيمة منطقية
+          status: activity.status === true || activity.status === "true", 
         }));
 
         setActivities(formattedActivities);
@@ -96,10 +92,10 @@ const Activity = () => {
     const completeActivity = {
       ...activity,
       name: activity.name || "",
-      // تحويل حالة boolean إلى string للعرض في نافذة التعديل
-      status: activity.status === true ? "true" : "false"
+      // تحويل القيمة المنطقية إلى سلسلة نصية لملء حقل الـ Select في EditDialog
+      status: activity.status === true ? "true" : "false", 
     };
-    
+
     console.log("Editing activity:", completeActivity);
     setSelectedRow(completeActivity);
     setIsEditOpen(true);
@@ -115,10 +111,10 @@ const Activity = () => {
 
     const { id, name, status } = selectedRow;
 
-    // بناء الـ payload للـ activities
     const payload = {
       name: name?.trim() || "",
-      status: status, // status هنا هي بالفعل string
+      // status هي بالفعل "true" أو "false" من حقل Select في EditDialog
+      status: status,
     };
 
     console.log("Payload being sent:", payload);
@@ -126,7 +122,7 @@ const Activity = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/activities/${id}`,
+        `https://negotia.wegostation.com/api/admin/activities/${id}`,
         {
           method: "PUT",
           headers: {
@@ -142,7 +138,7 @@ const Activity = () => {
           position: "top-right",
           autoClose: 3000,
         });
-        await fetchActivities(); // إعادة جلب البيانات
+        await fetchActivities();
         setIsEditOpen(false);
         setSelectedRow(null);
       } else {
@@ -168,7 +164,7 @@ const Activity = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/activities/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/activities/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -180,7 +176,9 @@ const Activity = () => {
           position: "top-right",
           autoClose: 3000,
         });
-        setActivities(activities.filter((activity) => activity.id !== selectedRow.id));
+        setActivities(
+          activities.filter((activity) => activity.id !== selectedRow.id)
+        );
         setIsDeleteOpen(false);
         setSelectedRow(null);
       } else {
@@ -203,12 +201,32 @@ const Activity = () => {
 
   const handleToggleStatus = async (row, newStatus) => {
     const { id } = row;
-    const statusValue = newStatus === 1 ? "true" : "false";
+    
+    // row.status هي قيمة منطقية (true/false) من الـ state
+    const currentStatusIsActive = row.status;
+    
+    // عكس القيمة المنطقية للحالة الجديدة
+    const newStatusBoolean = !currentStatusIsActive; 
+    
+    // القيمة التي سيتم إرسالها للـ API (يجب أن تكون سلسلة نصية "true" أو "false")
+    const statusValue = newStatusBoolean ? "true" : "false";
+
+    // Save old status for rollback in case of error
+    const oldStatus = row.status;
+
+    // Optimistic update - update UI immediately
+    setActivities((prevActivities) =>
+      prevActivities.map((activity) =>
+        activity.id === id 
+          ? { ...activity, status: newStatusBoolean } 
+          : activity
+      )
+    );
 
     dispatch(showLoader());
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/activities/${id}`,
+        `https://negotia.wegostation.com/api/admin/activities/${id}`,
         {
           method: "PUT",
           headers: {
@@ -224,12 +242,6 @@ const Activity = () => {
           position: "top-right",
           autoClose: 3000,
         });
-        // تحديث الحالة محلياً إلى boolean
-        setActivities((prevActivities) =>
-          prevActivities.map((activity) =>
-            activity.id === id ? { ...activity, status: newStatus === 1 } : activity
-          )
-        );
       } else {
         const errorData = await response.json();
         console.error("Failed to update activity status:", errorData);
@@ -237,6 +249,15 @@ const Activity = () => {
           position: "top-right",
           autoClose: 3000,
         });
+        
+        // Rollback on error
+        setActivities((prevActivities) =>
+          prevActivities.map((activity) =>
+            activity.id === id 
+              ? { ...activity, status: oldStatus } 
+              : activity
+          )
+        );
       }
     } catch (error) {
       console.error("Error updating activity status:", error);
@@ -244,6 +265,15 @@ const Activity = () => {
         position: "top-right",
         autoClose: 3000,
       });
+      
+      // Rollback on error
+      setActivities((prevActivities) =>
+        prevActivities.map((activity) =>
+          activity.id === id 
+            ? { ...activity, status: oldStatus } 
+            : activity
+        )
+      );
     } finally {
       dispatch(hideLoader());
     }
@@ -259,7 +289,20 @@ const Activity = () => {
 
   const columns = [
     { key: "name", label: "Activity Name" },
-    { key: "status", label: "Status" },
+    { 
+      key: "status", 
+      label: "Status",
+      // لم يعد هذا الجزء ضرورياً بشكل فعال ولكن يمكن تركه كمرجع
+      statusMapping: {
+        active: "true", 
+        inactive: "false" 
+      },
+      render: (row) => (
+        <span className={row.status ? "text-green-600 font-medium" : "text-gray-500 font-medium"}>
+          {row.status ? "Active" : "Inactive"}
+        </span>
+      )
+    },
   ];
 
   const filterOptionsForActivities = [
@@ -276,62 +319,82 @@ const Activity = () => {
 
   return (
     <>
-      <div className="p-4">
-        {/* {isLoading && <FullPageLoader />} */}
+      <DataTable
+        data={activities}
+        columns={columns}
+        showAddButton={true}
+        addRoute="/activity/add"
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onToggleStatus={handleToggleStatus}
+        showEditButton={true}
+        showDeleteButton={true}
+        showActions={true}
+        showFilter={true}
+        filterOptions={filterOptionsForActivities}
+        searchKeys={["name"]}
+        className="table-compact"
+      />
 
-        <DataTable
-          data={activities}
-          columns={columns}
-          showAddButton={true}
-          addRoute="/activity/add"
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onToggleStatus={handleToggleStatus}
-          showEditButton={true}
-          showDeleteButton={true}
-          showActions={true}
-          showFilter={true}
-          filterOptions={filterOptionsForActivities}
-          searchKeys={["name"]} 
-          className="table-compact"
-        />
+      {selectedRow && (
+        <>
+          <EditDialog
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
+            onSave={handleSave}
+            selectedRow={selectedRow}
+            columns={columns}
+            onChange={onChange}
+          >
+            {/* Activity Name Field */}
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Activity Name
+              </label>
+              <Input
+                id="name"
+                value={selectedRow?.name || ""}
+                onChange={(e) => onChange("name", e.target.value)}
+                className="text-bg-primary !p-4"
+                placeholder="Enter activity name"
+              />
+            </div>
 
-        {selectedRow && (
-          <>
-            <EditDialog
-              open={isEditOpen}
-              onOpenChange={setIsEditOpen}
-              onSave={handleSave}
-              selectedRow={selectedRow}
-              columns={columns}
-              onChange={onChange}
-            >
-              {/* Activity Name Field */}
-              <div className="!mb-4">
-                <label htmlFor="name" className="block text-gray-400 !mb-2">
-                  Activity Name
-                </label>
-                <Input
-                  id="name"
-                  value={selectedRow?.name || ""}
-                  onChange={(e) => onChange("name", e.target.value)}
-                  className="text-bg-primary !p-4"
-                  placeholder="Enter activity name"
-                />
-              </div>
+            {/* Status Field */}
+            <div>
+              <label
+                htmlFor="status"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Status
+              </label>
+              <Select
+                value={selectedRow?.status || "false"}
+                onValueChange={(value) => onChange("status", value)}
+              >
+                <SelectTrigger className="text-bg-primary !p-4">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </EditDialog>
 
-            </EditDialog>
+          <DeleteDialog
+            open={isDeleteOpen}
+            onOpenChange={setIsDeleteOpen}
+            onDelete={handleDeleteConfirm}
+            name={selectedRow.name}
+          />
+        </>
+      )}
 
-            <DeleteDialog
-              open={isDeleteOpen}
-              onOpenChange={setIsDeleteOpen}
-              onDelete={handleDeleteConfirm}
-              name={selectedRow.name}
-            />
-          </>
-        )}
-      </div>
-      
       <ToastContainer
         position="top-right"
         autoClose={3000}

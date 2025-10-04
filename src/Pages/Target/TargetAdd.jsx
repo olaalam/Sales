@@ -62,7 +62,7 @@ export default function TargetAdd() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/targets/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/targets/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -31,7 +31,7 @@ export default function UserAdd() {
   // Fetch targets from API
   const fetchTargets = async () => {
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/targets/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/targets/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +101,7 @@ export default function UserAdd() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/users/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/users/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

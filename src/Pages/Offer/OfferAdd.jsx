@@ -34,7 +34,7 @@ export default function OfferAdd() {
   // Fetch products from API
   const fetchproducts = async () => {
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/products/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/products/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -103,7 +103,7 @@ export default function OfferAdd() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/offers/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/offers/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

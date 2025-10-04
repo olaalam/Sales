@@ -2,7 +2,7 @@
 import axios from "axios";
 
 export const loginAuth = async (emailOrUsername, password) => {
-  const response = await axios.post("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/auth/login", {
+  const response = await axios.post("https://negotia.wegostation.com/api/auth/login", {
     email: emailOrUsername,
     password,
   });

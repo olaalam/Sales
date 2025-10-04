@@ -68,7 +68,7 @@ export default function ProductAdd() {
 
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/products/",
+        "https://negotia.wegostation.com/api/admin/products/",
         {
           method: "POST",
           headers: {

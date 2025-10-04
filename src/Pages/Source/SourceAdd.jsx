@@ -51,7 +51,7 @@ export default function SourceAdd() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/sources/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/sources/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

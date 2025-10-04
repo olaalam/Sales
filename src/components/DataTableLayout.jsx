@@ -252,7 +252,7 @@ export default function DataTable({
           )}
         </div>
       </div>
-      <div className="max-h-[calc(100vh-300px)]">
+      <div >
         <Table className="!min-w-[600px]">
           <TableHeader>
             <TableRow>

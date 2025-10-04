@@ -28,7 +28,7 @@ const Commission = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        "https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/commissions/",
+        "https://negotia.wegostation.com/api/admin/commissions/",
         {
           method: "GET",
           headers: {
@@ -127,7 +127,7 @@ const Commission = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/commissions/${id}`,
+        `https://negotia.wegostation.com/api/admin/commissions/${id}`,
         {
           method: "PUT",
           headers: {
@@ -169,7 +169,7 @@ const Commission = () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
-        `https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/commissions/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/commissions/${selectedRow.id}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),

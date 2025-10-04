@@ -28,7 +28,7 @@ export default function LeaderAdd() {
   // Fetch targets from API
   const fetchTargets = async () => {
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/targets/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/targets/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export default function LeaderAdd() {
     console.log("Payload being sent:", payload);
 
     try {
-      const response = await fetch("https://qpjgfr5x-3000.uks1.devtunnels.ms/api/admin/leaders/", {
+      const response = await fetch("https://negotia.wegostation.com/api/admin/leaders/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
