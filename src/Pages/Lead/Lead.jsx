@@ -21,8 +21,9 @@ const Lead = () => {
   const dispatch = useDispatch();
   const isLoading = useSelector((state) => state.loader.isLoading);
   const [leads, setleads] = useState([]);
-  const [salesOptions, setSalesOptions] = useState([]); // New state for Sales options
-  const [activityOptions, setActivityOptions] = useState([]); // New state for Activity options
+  const [salesOptions, setSalesOptions] = useState([]);
+  const [activityOptions, setActivityOptions] = useState([]);
+  const [sourceOptions, setSourceOptions] = useState([]); // ✅ Source options
   const token = localStorage.getItem("token");
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -63,33 +64,31 @@ const Lead = () => {
         )
           .toString()
           .padStart(2, "0")}/${createdDate
-            .getDate()
-            .toString()
-            .padStart(2, "0")}`;
+          .getDate()
+          .toString()
+          .padStart(2, "0")}`;
 
         return {
           id: lead._id,
           name: lead.name,
           phone: lead.phone,
-          address: lead.address,
           type: lead.type || "—",
           status: lead.status || "intersted",
           activity_id: lead.activity_id?.name || "—",
           sales_id: lead.sales_id?.name || "—",
           transfer: lead.transfer ? "true" : "false",
           created_at,
-          // Storing the actual IDs for a clean update process later
           sales_id_value: lead.sales_id?._id || undefined,
           activity_id_value: lead.activity_id?._id || undefined,
           source_id: lead.source_id?.name || "—",
+          source_id_value: lead.source_id?._id || undefined, // ✅
         };
       });
 
       setleads(formatted);
-      // **This is the main change** - storing the data from the API response
       setSalesOptions(result.data.data.SalesOptions);
       setActivityOptions(result.data.data.ActivityOptions);
-
+      setSourceOptions(result.data.data.SourceOptions); // ✅
     } catch (error) {
       console.error("Error fetching leads:", error);
       toast.error("Failed to load leads data");
@@ -103,11 +102,11 @@ const Lead = () => {
   }, []);
 
   const handleEdit = (lead) => {
-    // When editing, set the selected row and use the _id values for the Select components
     setSelectedRow({
       ...lead,
       sales_id: lead.sales_id_value,
-      activity_id: lead.activity_id_value
+      activity_id: lead.activity_id_value,
+      source_id: lead.source_id_value,
     });
     setIsEditOpen(true);
   };
@@ -120,25 +119,27 @@ const Lead = () => {
   const handleSave = async () => {
     if (!selectedRow) return;
 
-    const { id, name, phone, password, address, status, sales_id, activity_id } =
+    const { id, name, phone, status, sales_id, activity_id, type, source_id } =
       selectedRow;
+
+    // ✅ Validation: if company, source_id required
+    if (type === "company" && !source_id) {
+      toast.error("Source is required for company type!");
+      return;
+    }
 
     const payload = {
       name: name || "",
       phone: phone || "",
       status: status || "intersted",
-      address: address || "",
-      // Use the IDs from the state for the API call
       sales_id: sales_id || null,
       activity_id: activity_id || null,
+      type: type || "",
+      source_id: type === "company" ? source_id : null, // ✅ only send if company
     };
 
-    if (password && password.trim()) {
-      payload.password = password;
-    }
-
     console.log("Payload being sent:", payload);
- setIsSaving(true);
+    setIsSaving(true);
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/leads/${id}`,
@@ -165,15 +166,13 @@ const Lead = () => {
     } catch (error) {
       console.error("Error updating lead:", error);
       toast.error("Error occurred while updating lead!");
-    }
-    finally {
-        // 2. تعطيل حالة التحميل بعد الانتهاء
-        setIsSaving(false); 
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
-    setIsDeleting(true); 
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/leads/${selectedRow.id}`,
@@ -194,38 +193,7 @@ const Lead = () => {
       console.error("Error deleting lead:", error);
       toast.error("Error occurred while deleting lead!");
     } finally {
-        // 2. تعطيل حالة التحميل بعد الانتهاء
-        setIsDeleting(false); 
-    }
-  };
-
-  const handleToggleStatus = async (row, newStatus) => {
-    try {
-      const response = await fetch(
-        `https://negotia.wegostation.com/api/admin/leads/${row.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Lead status updated successfully!");
-        setleads((prev) =>
-          prev.map((lead) =>
-            lead.id === row.id ? { ...lead, status: newStatus } : lead
-          )
-        );
-      } else {
-        toast.error("Failed to update lead status!");
-      }
-    } catch (error) {
-      console.error("Error updating lead status:", error);
-      toast.error("Error occurred while updating lead status!");
+      setIsDeleting(false);
     }
   };
 
@@ -239,7 +207,6 @@ const Lead = () => {
   const columns = [
     { key: "name", label: "Name" },
     { key: "phone", label: "Phone" },
-    { key: "address", label: "Address" },
     { key: "type", label: "Type" },
     { key: "activity_id", label: "Activity" },
     { key: "sales_id", label: "Sales" },
@@ -276,17 +243,15 @@ const Lead = () => {
         addRoute="/lead/add"
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onToggleStatus={handleToggleStatus}
         showEditButton={true}
         showDeleteButton={true}
         showActions={true}
         showFilter={true}
         statusComponentType="select"
         filterOptions={filterOptionsForleads}
-        searchKeys={["name", "phone", "type", "target_name"]}
-        className="table-compact"
-        isLoadingEdit={isSaving}    
-  isLoadingDelete={isDeleting}
+        searchKeys={["name", "phone", "type"]}
+        isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
       />
 
       {selectedRow && (
@@ -300,6 +265,7 @@ const Lead = () => {
             onChange={onChange}
             isLoading={isSaving}
           >
+            {/* Basic info */}
             <label htmlFor="name" className="text-gray-400 !pb-3">
               Name
             </label>
@@ -320,21 +286,11 @@ const Lead = () => {
               value={selectedRow?.phone || ""}
               onChange={(e) => onChange("phone", e.target.value)}
               className="!my-2 text-bg-primary !p-4"
-              placeholder="Enter phone address"
-            />
-            <label htmlFor="address" className="text-gray-400 !pb-3">
-              Address
-            </label>
-            <Input
-              id="address"
-              type="address"
-              value={selectedRow?.address || ""}
-              onChange={(e) => onChange("address", e.target.value)}
-              className="!my-2 text-bg-primary !p-4"
-              placeholder="Enter new address"
+              placeholder="Enter phone"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Type */}
               <div>
                 <label htmlFor="type" className="text-gray-400 !pb-3">
                   Type
@@ -347,15 +303,13 @@ const Lead = () => {
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent className="bg-white !p-2">
-                    <SelectItem className="cursor-pointer" value="sales">
-                      Sales
-                    </SelectItem>
+                    <SelectItem value="sales">Sales</SelectItem>
                     <SelectItem value="company">Company</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* **Updated Sales Select component** */}
+              {/* Sales */}
               <div>
                 <label htmlFor="sales_id" className="text-gray-400 !pb-3">
                   Sales
@@ -370,10 +324,7 @@ const Lead = () => {
                   <SelectContent className="bg-white !p-2">
                     {salesOptions.length > 0 ? (
                       salesOptions.map((option) => (
-                        <SelectItem
-                          key={option._id}
-                          value={option._id}
-                        >
+                        <SelectItem key={option._id} value={option._id}>
                           {option.name}
                         </SelectItem>
                       ))
@@ -386,7 +337,7 @@ const Lead = () => {
                 </Select>
               </div>
 
-              {/* **New Activity Select component** */}
+              {/* Activity */}
               <div>
                 <label htmlFor="activity_id" className="text-gray-400 !pb-3">
                   Activity
@@ -401,10 +352,7 @@ const Lead = () => {
                   <SelectContent className="bg-white !p-2">
                     {activityOptions.length > 0 ? (
                       activityOptions.map((option) => (
-                        <SelectItem
-                          key={option._id}
-                          value={option._id}
-                        >
+                        <SelectItem key={option._id} value={option._id}>
                           {option.name}
                         </SelectItem>
                       ))
@@ -416,6 +364,36 @@ const Lead = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* ✅ Show Source only if type = company */}
+              {selectedRow?.type === "company" && (
+                <div className="md:col-span-3">
+                  <label htmlFor="source_id" className="text-gray-400 !pb-3">
+                    Source <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={selectedRow?.source_id || undefined}
+                    onValueChange={(value) => onChange("source_id", value)}
+                  >
+                    <SelectTrigger className="!my-2 text-bg-primary !p-4">
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white !p-2">
+                      {sourceOptions.length > 0 ? (
+                        sourceOptions.map((option) => (
+                          <SelectItem key={option._id} value={option._id}>
+                            {option.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-sources" disabled>
+                          No sources available
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </EditDialog>
 
