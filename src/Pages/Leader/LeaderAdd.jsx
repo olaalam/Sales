@@ -12,6 +12,10 @@ export default function LeaderAdd() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [targets, setTargets] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -25,7 +29,6 @@ export default function LeaderAdd() {
     Authorization: `Bearer ${token}`,
   });
 
-  // Fetch targets from API
   const fetchTargets = async () => {
     try {
       const response = await fetch("https://negotia.wegostation.com/api/admin/targets/", {
@@ -40,7 +43,6 @@ export default function LeaderAdd() {
         const result = await response.json();
         console.log("Targets API response:", result);
         
-        // Handle different possible response structures
         let targetsData = [];
         if (result.data && Array.isArray(result.data)) {
           targetsData = result.data;
@@ -73,13 +75,19 @@ export default function LeaderAdd() {
     }));
   };
 
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
     // Validation
-    if (!formData.name || !formData.email || !formData.password ) {
+    if (!formData.name || !formData.email || !formData.password) {
       toast.error("Please fill in all required fields", { position: "top-right", autoClose: 3000 });
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -89,7 +97,6 @@ export default function LeaderAdd() {
       status: formData.status === "active" ? "Active" : "inactive",
     };
 
-    // Only add target_id if it's selected
     if (formData.target_id) {
       payload.target_id = formData.target_id;
     }
@@ -113,7 +120,6 @@ export default function LeaderAdd() {
           name: "",
           email: "",
           password: "",
-        //   target_id: "",
           status: "active",
         });
         navigate("/leader");
@@ -121,7 +127,6 @@ export default function LeaderAdd() {
         const errorData = await response.json();
         console.error("Create failed:", errorData);
         
-        // Handle specific error messages
         if (errorData.error.message) {
           toast.error(errorData.error.message, { position: "top-right", autoClose: 3000 });
         } else if (errorData.error) {
@@ -134,17 +139,12 @@ export default function LeaderAdd() {
       console.error("Error creating leader:", error);
       toast.error("An error occurred while creating leader!", { position: "top-right", autoClose: 3000 });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
-  // Prepare target options for dropdown
-//   const targetOptions = targets.map(target => ({
-//     value: target._id || target.id,
-//     label: `${target.name} (${target.point || target.points || 0} points)`
-//   }));
-
-  // Define form fields
   const fields = [
     {
       type: "input",
@@ -166,23 +166,6 @@ export default function LeaderAdd() {
       inputType: "password",
       required: true,
     },
-    // {
-    //   type: "select",
-    //   placeholder: "Select Role *",
-    //   name: "role",
-    //   required: true,
-    //   options: [
-    //     { value: "Salesman", label: "Salesman" },
-    //     { value: "Sales Leader", label: "Leader" },
-    //     { value: "Admin", label: "Admin" },
-    //   ],
-    // },
-    // {
-    //   type: "select",
-    //   placeholder: "Select Target (Optional)",
-    //   name: "target_id",
-    //   options: targetOptions,
-    // },
     {
       type: "switch",
       name: "status",
@@ -195,18 +178,18 @@ export default function LeaderAdd() {
 
   return (
     <div className="w-full !p-6 relative">
-       <ToastContainer
-      position="top-right"
-      autoClose={3000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      style={{ zIndex: 9999 }}
-    />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        style={{ zIndex: 9999 }}
+      />
 
       <h2 className="text-bg-primary text-center !pb-10 text-xl font-semibold !mb-10">
         Add leader
@@ -217,11 +200,17 @@ export default function LeaderAdd() {
       </div>
 
       <div className="!my-6">
+        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create leader
+          {isSubmitting ? "Creating..." : "Create leader"}
         </Button>
       </div>
     </div>

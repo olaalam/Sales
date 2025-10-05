@@ -12,7 +12,10 @@ export default function CountryAdd() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-
+  
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: "",
   });
@@ -29,9 +32,9 @@ export default function CountryAdd() {
     }));
   };
 
-  // ✅ Handle Submit
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
-    if (!formData.name ) {
+    if (!formData.name) {
       toast.error("Please fill in all required fields", {
         position: "top-right",
         autoClose: 3000,
@@ -39,6 +42,11 @@ export default function CountryAdd() {
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -82,6 +90,8 @@ export default function CountryAdd() {
         autoClose: 3000,
       });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
@@ -103,11 +113,17 @@ export default function CountryAdd() {
       </div>
 
       <div className="!my-6">
+        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create Country
+          {isSubmitting ? "Creating..." : "Create Country"}
         </Button>
       </div>
     </div>

@@ -5,14 +5,15 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDispatch } from "react-redux";
 import { showLoader, hideLoader } from "@/Store/LoaderSpinner";
-// import FullPageLoader from "@/components/Loading";
 import { useNavigate } from "react-router-dom";
 
 export default function ProductAdd() {
   const dispatch = useDispatch();
-  //   const isLoading = useSelector((state) => state.loader.isLoading);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -35,6 +36,7 @@ export default function ProductAdd() {
     }));
   };
 
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
     // Validation
     if (
@@ -52,6 +54,11 @@ export default function ProductAdd() {
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -88,7 +95,6 @@ export default function ProductAdd() {
           autoClose: 3000,
         });
 
-        // إعادة تعيين النموذج
         setFormData({
           name: "",
           description: "",
@@ -99,13 +105,11 @@ export default function ProductAdd() {
           status: "active",
         });
 
-        // العودة لصفحة الأهداف
         navigate("/product");
       } else {
         const errorData = await response.json();
         console.error("Create failed:", errorData);
 
-        // معالجة رسائل الخطأ المختلفة
         let errorMessage = "Failed to create product";
 
         if (errorData.error?.message) {
@@ -128,11 +132,12 @@ export default function ProductAdd() {
         autoClose: 3000,
       });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
-  // تعريف حقول النموذج للأهداف
   const fields = [
     {
       type: "input",
@@ -185,7 +190,6 @@ export default function ProductAdd() {
       step: "0.01",
       required: true,
     },
-
     {
       type: "switch",
       name: "status",
@@ -198,8 +202,6 @@ export default function ProductAdd() {
 
   return (
     <div className="w-full p-6 relative">
-      {/* {isLoading && <FullPageLoader />} */}
-
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -222,11 +224,17 @@ export default function ProductAdd() {
       </div>
 
       <div className="!my-6">
+        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create product
+          {isSubmitting ? "Creating..." : "Create product"}
         </Button>
       </div>
     </div>

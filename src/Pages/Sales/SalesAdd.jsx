@@ -5,7 +5,6 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDispatch } from 'react-redux';
 import { showLoader, hideLoader } from '@/Store/LoaderSpinner';
-import FullPageLoader from "@/components/Loading";
 import { useNavigate } from "react-router-dom";
 
 export default function SalesAdd() {
@@ -15,6 +14,7 @@ export default function SalesAdd() {
 
   const [targets, setTargets] = useState([]);
   const [leaders, setLeaders] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ إضافة حالة التحميل
 
   const [formData, setFormData] = useState({
     name: "",
@@ -28,7 +28,7 @@ export default function SalesAdd() {
     Authorization: `Bearer ${token}`,
   });
 
-  // ✅ Fetch targets (optional)
+  // ✅ Fetch targets
   const fetchTargets = async () => {
     try {
       const response = await fetch("https://negotia.wegostation.com/api/admin/targets/", {
@@ -42,13 +42,15 @@ export default function SalesAdd() {
       if (response.ok) {
         const result = await response.json();
         let targetsData = [];
+
         if (result.data && Array.isArray(result.data)) {
           targetsData = result.data;
-        } else if (result.data && result.data.data && Array.isArray(result.data.data)) {
+        } else if (result.data?.data && Array.isArray(result.data.data)) {
           targetsData = result.data.data;
         } else if (Array.isArray(result)) {
           targetsData = result;
         }
+
         setTargets(targetsData);
       } else {
         setTargets([]);
@@ -73,13 +75,15 @@ export default function SalesAdd() {
       if (response.ok) {
         const result = await response.json();
         let leadersData = [];
+
         if (result.data && Array.isArray(result.data)) {
           leadersData = result.data;
-        } else if (result.data && result.data.data && Array.isArray(result.data.data)) {
+        } else if (result.data?.data && Array.isArray(result.data.data)) {
           leadersData = result.data.data;
         } else if (Array.isArray(result)) {
           leadersData = result;
         }
+
         setLeaders(leadersData);
       } else {
         setLeaders([]);
@@ -102,12 +106,19 @@ export default function SalesAdd() {
     }));
   };
 
+  // ✅ تعديل دالة الـ Submit
   const handleSubmit = async () => {
     if (!formData.name || !formData.email || !formData.password) {
-      toast.error("Please fill in all required fields", { position: "top-right", autoClose: 3000 });
+      toast.error("Please fill in all required fields", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return;
     }
 
+    if (isSubmitting) return; // ⛔ منع الضغط المتكرر
+
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -117,12 +128,8 @@ export default function SalesAdd() {
       status: formData.status === "active" ? "Active" : "inactive",
     };
 
-    if (formData.leader_id) {
-      payload.leader_id = formData.leader_id;
-    }
-    if (formData.target_id) {
-      payload.target_id = formData.target_id;
-    }
+    if (formData.leader_id) payload.leader_id = formData.leader_id;
+    if (formData.target_id) payload.target_id = formData.target_id;
 
     try {
       const response = await fetch("https://negotia.wegostation.com/api/admin/sales/", {
@@ -135,7 +142,11 @@ export default function SalesAdd() {
       });
 
       if (response.ok) {
-        toast.success("Sale created successfully!", { position: "top-right", autoClose: 3000 });
+        toast.success("Sale created successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+
         setFormData({
           name: "",
           email: "",
@@ -143,24 +154,35 @@ export default function SalesAdd() {
           status: "active",
           leader_id: "",
         });
+
         navigate("/sale");
       } else {
         const errorData = await response.json();
+        let errorMessage = "Failed to create sale";
+
         if (errorData.error?.message) {
-          toast.error(errorData.error.message, { position: "top-right", autoClose: 3000 });
-        } else {
-          toast.error("Failed to create sale", { position: "top-right", autoClose: 3000 });
+          errorMessage = errorData.error.message;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
         }
+
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
     } catch (error) {
       console.error("Error creating sale:", error);
-      toast.error("An error occurred while creating sale!", { position: "top-right", autoClose: 3000 });
+      toast.error("An error occurred while creating sale!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
     } finally {
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
-  // ✅ Dropdown options
   const leaderOptions = leaders.map((leader) => ({
     value: leader._id || leader.id,
     label: leader.name,
@@ -188,20 +210,28 @@ export default function SalesAdd() {
   ];
 
   return (
-    <div className="w-full !p-6 relative">
+    <div className="w-full p-6 relative">
       <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 9999 }} />
-      <h2 className="text-bg-primary text-center !pb-10 text-xl font-semibold !mb-10">
+
+      <h2 className="text-bg-primary text-center pb-10 text-xl font-semibold mb-10">
         Add Sale
       </h2>
+
       <div className="w-[90%] mx-auto">
         <Add fields={fields} values={formData} onChange={handleInputChange} />
       </div>
-      <div className="!my-6">
+
+      <div className="my-6">
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting
+              ? "bg-gray-400 cursor-not-allowed opacity-60"
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create Sale
+          {isSubmitting ? "Creating..." : "Create Sale"}
         </Button>
       </div>
     </div>

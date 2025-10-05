@@ -18,6 +18,9 @@ export default function CityAdd() {
     name: "",
     countryId: "",
   });
+  
+  // ✨ حالة جديدة لتتبع عملية الإضافة
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
@@ -72,6 +75,11 @@ export default function CityAdd() {
       return;
     }
 
+    // ⛔ منع الإرسال إذا كانت هناك عملية جارية بالفعل
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -117,6 +125,8 @@ export default function CityAdd() {
         autoClose: 3000,
       });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
@@ -152,10 +162,15 @@ export default function CityAdd() {
 
       <div className="!my-6">
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create City
+          {isSubmitting ? "Creating..." : "Create City"}
         </Button>
       </div>
     </div>

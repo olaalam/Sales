@@ -3,14 +3,12 @@ import { Button } from "@/components/ui/button";
 import Add from "@/components/AddFieldSection";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useDispatch } from 'react-redux';
-import { showLoader, hideLoader } from '@/Store/LoaderSpinner';
-// import FullPageLoader from "@/components/Loading";
+import { useDispatch } from "react-redux";
+import { showLoader, hideLoader } from "@/Store/LoaderSpinner";
 import { useNavigate } from "react-router-dom";
 
 export default function TargetAdd() {
   const dispatch = useDispatch();
-//   const isLoading = useSelector((state) => state.loader.isLoading);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -19,6 +17,8 @@ export default function TargetAdd() {
     point: "",
     status: "active",
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
@@ -32,31 +32,32 @@ export default function TargetAdd() {
   };
 
   const handleSubmit = async () => {
-    // Validation
+    // التحقق من الحقول المطلوبة
     if (!formData.name || !formData.point) {
-      toast.error("Please fill in all required fields", { 
-        position: "top-right", 
-        autoClose: 3000 
+      toast.error("Please fill in all required fields", {
+        position: "top-right",
+        autoClose: 3000,
       });
       return;
     }
 
-    // تحقق من أن النقاط رقم صحيح
+    // التحقق من صحة النقاط
     const points = parseInt(formData.point);
     if (isNaN(points) || points < 0) {
-      toast.error("Please enter a valid number for target points", { 
-        position: "top-right", 
-        autoClose: 3000 
+      toast.error("Please enter a valid number for target points", {
+        position: "top-right",
+        autoClose: 3000,
       });
       return;
     }
 
     dispatch(showLoader());
+    setIsSubmitting(true);
 
     const payload = {
       name: formData.name.trim(),
       point: points,
-      status: formData.status === "active" ? "Active" : "inactive",
+      status: formData.status === "active" ? "Active" : "Inactive",
     };
 
     console.log("Payload being sent:", payload);
@@ -74,53 +75,53 @@ export default function TargetAdd() {
       if (response.ok) {
         const result = await response.json();
         console.log("Target created successfully:", result);
-        
-        toast.success("Target created successfully!", { 
-          position: "top-right", 
-          autoClose: 3000 
+
+        toast.success("Target created successfully!", {
+          position: "top-right",
+          autoClose: 2000,
         });
-        
-        // إعادة تعيين النموذج
+
+        // إعادة تعيين الحقول
         setFormData({
           name: "",
           point: "",
           status: "active",
         });
-        
-        // العودة لصفحة الأهداف
-        navigate("/target");
+
+        // العودة بعد نجاح الإضافة
+        setTimeout(() => navigate("/target"), 2000);
       } else {
         const errorData = await response.json();
         console.error("Create failed:", errorData);
-        
-        // معالجة رسائل الخطأ المختلفة
+
         let errorMessage = "Failed to create target";
-        
+
         if (errorData.error?.message) {
           errorMessage = errorData.error.message;
         } else if (errorData.message) {
           errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
+        } else if (errorData.errors) {
+          // Laravel-style validation errors
+          errorMessage = Object.values(errorData.errors).flat().join(", ");
         }
-        
-        toast.error(errorMessage, { 
-          position: "top-right", 
-          autoClose: 3000 
+
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 3000,
         });
       }
     } catch (error) {
       console.error("Error creating target:", error);
-      toast.error("An error occurred while creating target!", { 
-        position: "top-right", 
-        autoClose: 3000 
+      toast.error("An error occurred while creating target!", {
+        position: "top-right",
+        autoClose: 3000,
       });
     } finally {
       dispatch(hideLoader());
+      setIsSubmitting(false);
     }
   };
 
-  // تعريف حقول النموذج للأهداف
   const fields = [
     {
       type: "input",
@@ -149,22 +150,9 @@ export default function TargetAdd() {
 
   return (
     <div className="w-full p-6 relative">
-      {/* {isLoading && <FullPageLoader />} */}
-      
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        style={{ zIndex: 9999 }}
-      />
+      <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 9999 }} />
 
-      <h2 className="text-bg-primary text-center !pb-10 text-xl font-semibold !mb-10">
+      <h2 className="text-bg-primary text-center pb-10 text-xl font-semibold mb-10">
         Add Target
       </h2>
 
@@ -172,12 +160,15 @@ export default function TargetAdd() {
         <Add fields={fields} values={formData} onChange={handleInputChange} />
       </div>
 
-      <div className="!my-6">
+      <div className="my-6 flex justify-center">
         <Button
           onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          disabled={isSubmitting}
+          className={`${
+            isSubmitting ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+          } bg-bg-primary hover:bg-teal-600 px-5 py-6 text-white w-[30%] rounded-[15px] transition-all duration-200`}
         >
-          Create Target
+          {isSubmitting ? "Creating..." : "Create Target"}
         </Button>
       </div>
     </div>

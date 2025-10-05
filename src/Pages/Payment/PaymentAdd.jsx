@@ -12,7 +12,9 @@ export default function PaymentAdd() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // State for all dropdown options
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [options, setOptions] = useState({
     leadOptions: [],
     salesOptions: [],
@@ -21,7 +23,6 @@ export default function PaymentAdd() {
     paymentMethodOptions: [],
   });
 
-  // State for form data, matching the required payment payload
   const [formData, setFormData] = useState({
     lead_id: "",
     sales_id: "",
@@ -35,7 +36,6 @@ export default function PaymentAdd() {
     Authorization: `Bearer ${token}`,
   });
 
-  // Fetch all options for the dropdowns
   const fetchAllOptions = async () => {
     dispatch(showLoader());
     try {
@@ -82,8 +82,8 @@ export default function PaymentAdd() {
     }));
   };
 
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
-    // Validation: Check for all required fields
     const requiredFields = ["lead_id", "sales_id", "product_id", "offer_id", "payment_method_id", "amount"];
     const missingField = requiredFields.find((field) => !formData[field]);
 
@@ -92,6 +92,11 @@ export default function PaymentAdd() {
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -136,18 +141,18 @@ export default function PaymentAdd() {
       console.error("Error creating payment:", error);
       toast.error("An error occurred while creating payment!", { position: "top-right", autoClose: 3000 });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
-  // Prepare options for the dropdowns
   const leadDropdownOptions = options.leadOptions.map(l => ({ value: l._id, label: l.name }));
   const salesDropdownOptions = options.salesOptions.map(s => ({ value: s._id, label: s.name }));
   const productDropdownOptions = options.productOptions.map(p => ({ value: p._id, label: `${p.name} (${p.points} points)` }));
   const offerDropdownOptions = options.offerOptions.map(o => ({ value: o._id, label: o.name }));
   const paymentMethodDropdownOptions = options.paymentMethodOptions.map(p => ({ value: p._id, label: p.name }));
 
-  // Define form fields
   const fields = [
     {
       type: "select",
@@ -217,11 +222,17 @@ export default function PaymentAdd() {
       </div>
 
       <div className="!my-6">
+        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create Payment
+          {isSubmitting ? "Creating..." : "Create Payment"}
         </Button>
       </div>
     </div>

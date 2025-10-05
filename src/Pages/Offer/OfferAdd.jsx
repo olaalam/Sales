@@ -13,6 +13,10 @@ export default function OfferAdd() {
   const isLoading = useSelector((state) => state.loader.isLoading);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [products, setproducts] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -31,7 +35,6 @@ export default function OfferAdd() {
     Authorization: `Bearer ${token}`,
   });
 
-  // Fetch products from API
   const fetchproducts = async () => {
     try {
       const response = await fetch("https://negotia.wegostation.com/api/admin/products/", {
@@ -46,7 +49,6 @@ export default function OfferAdd() {
         const result = await response.json();
         console.log("products API response:", result);
         
-        // Handle different possible response structures
         let productsData = [];
         if (result.data && Array.isArray(result.data)) {
           productsData = result.data;
@@ -79,6 +81,7 @@ export default function OfferAdd() {
     }));
   };
 
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
     // Validation
     if (!formData.name || !formData.description || !formData.discount_type || !formData.discount_amount) {
@@ -86,6 +89,11 @@ export default function OfferAdd() {
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -131,7 +139,6 @@ export default function OfferAdd() {
         const errorData = await response.json();
         console.error("Create failed:", errorData);
         
-        // Extract the error message properly
         const errorMessage =
           errorData?.error?.message ||
           errorData?.message ||
@@ -144,17 +151,17 @@ export default function OfferAdd() {
       console.error("Error creating offer:", error);
       toast.error(error?.message || "An error occurred while creating offer!", { position: "top-right", autoClose: 3000 });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
-  // Prepare product options for dropdown
   const productOptions = products.map(product => ({
     value: product._id || product.id,
     label: `${product.name} (${product.point || product.points || 0} points)`
   }));
 
-  // Define form fields for offers
   const fields = [
     {
       type: "input",
@@ -218,18 +225,18 @@ export default function OfferAdd() {
   return (
     <div className="w-full !p-6 relative">
       {isLoading && <FullPageLoader />}
-       <ToastContainer
-      position="top-right"
-      autoClose={3000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      style={{ zIndex: 9999 }}
-    />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        style={{ zIndex: 9999 }}
+      />
 
       <h2 className="text-bg-primary text-center !pb-10 text-xl font-semibold !mb-10">
         Add Offer
@@ -240,11 +247,17 @@ export default function OfferAdd() {
       </div>
 
       <div className="!my-6">
+        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create Offer
+          {isSubmitting ? "Creating..." : "Create Offer"}
         </Button>
       </div>
     </div>

@@ -93,18 +93,24 @@ const City = () => {
   }, []);
 
   // ✅ تعديل
-  const handleEdit = (city) => {
-    setSelectedRow(city);
-    setIsEditOpen(true);
-  };
+const handleEdit = (city) => {
+  if (!city.id) {
+    console.error("City id is missing:", city);
+    toast.error("City ID is missing");
+    return;
+  }
+  setSelectedRow(city);
+  setIsEditOpen(true);
+};
 
   const handleSave = async () => {
     if (!selectedRow) return;
     const { id, name, country_id } = selectedRow;
+  console.log("Updating city with ID:", selectedRow?.id); // 👈 شوف الـ id هنا
 
     const payload = {
       name,
-      country: country_id,
+      countryId: country_id,
     };
 
     setIsSaving(true);
