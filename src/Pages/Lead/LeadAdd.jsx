@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import Add from "@/components/AddFieldSection";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { showLoader, hideLoader } from '@/Store/LoaderSpinner';
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +11,7 @@ export default function LeadAdd() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const isLoading = useSelector((state) => state.loader.isLoading);
 
   const [salesOptions, setSalesOptions] = useState([]);
   const [activityOptions, setActivityOptions] = useState([]);
@@ -250,6 +251,7 @@ export default function LeadAdd() {
       <div className="!my-6">
         <Button
           onClick={handleSubmit}
+          disabled={isLoading}
           className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
         >
           Create Lead

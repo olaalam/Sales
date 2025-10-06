@@ -3,14 +3,13 @@ import { Button } from "@/components/ui/button";
 import Add from "@/components/AddFieldSection";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { showLoader, hideLoader } from '@/Store/LoaderSpinner';
-// import FullPageLoader from "@/components/Loading";
 import { useNavigate } from "react-router-dom";
 
 export default function ActivityAdd() {
   const dispatch = useDispatch();
-//   const isLoading = useSelector((state) => state.loader.isLoading);
+  const isLoading = useSelector((state) => state.loader.isLoading);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -32,14 +31,13 @@ export default function ActivityAdd() {
 
   const handleSubmit = async () => {
     // Validation
-    if (!formData.name ) {
+    if (!formData.name) {
       toast.error("Please fill in all required fields", { 
         position: "top-right", 
         autoClose: 3000 
       });
       return;
     }
-
 
     dispatch(showLoader());
 
@@ -130,8 +128,6 @@ export default function ActivityAdd() {
 
   return (
     <div className="w-full !p-6 relative">
-      {/* {isLoading && <FullPageLoader />} */}
-      
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -156,9 +152,10 @@ export default function ActivityAdd() {
       <div className="!my-6">
         <Button
           onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          disabled={isLoading}
+          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Create Activity
+          {isLoading ? "Creating..." : "Create Activity"}
         </Button>
       </div>
     </div>
