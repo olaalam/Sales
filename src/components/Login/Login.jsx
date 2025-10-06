@@ -45,7 +45,7 @@ const Login = () => {
       localStorage.setItem("token", data.data.token);
 
       const redirectTo = new URLSearchParams(location.search).get("redirect");
-      navigate(redirectTo || '/');
+      navigate(redirectTo || '/users');
     } catch (error) {
       const msg = error?.response?.data?.message || "Login failed. Please try again.";
       toast.error(msg);

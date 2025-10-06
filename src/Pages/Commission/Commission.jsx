@@ -9,7 +9,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { showLoader, hideLoader } from "@/Store/LoaderSpinner";
 import FullPageLoader from "@/components/Loading";
 import { Input } from "@/components/ui/input";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 const Commission = () => {
   const dispatch = useDispatch();
   const isLoading = useSelector((state) => state.loader.isLoading);
@@ -18,11 +24,11 @@ const Commission = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  
+
   // ✅ حالات التحميل المنفصلة موجودة بالفعل
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
@@ -100,7 +106,8 @@ const Commission = () => {
       level_name: commission.level_name || commission.name || "",
       type: commission.type || "",
       amount: commission.amount || 0,
-      point_threshold: commission.point_threshold || commission.price_quarter || 0,
+      point_threshold:
+        commission.point_threshold || commission.price_quarter || 0,
     };
 
     console.log("Editing commission:", completecommission);
@@ -132,8 +139,8 @@ const Commission = () => {
     // ✨ تفعيل حالة التحميل المنفصلة لتعطيل الأزرار
     setIsSaving(true);
     // يمكنك الإبقاء على dispatch(showLoader()) إذا أردت ظهور FullPageLoader
-    // dispatch(showLoader()); 
-    
+    // dispatch(showLoader());
+
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/commissions/${id}`,
@@ -181,7 +188,7 @@ const Commission = () => {
     // ✨ تفعيل حالة التحميل المنفصلة لتعطيل الأزرار
     setIsDeleting(true);
     // يمكنك الإبقاء على dispatch(showLoader()) إذا أردت ظهور FullPageLoader
-    // dispatch(showLoader()); 
+    // dispatch(showLoader());
 
     try {
       const response = await fetch(
@@ -292,17 +299,21 @@ const Commission = () => {
 
               {/* commission type Field */}
               <div className="!mb-4">
-                <label htmlFor="type" className="block text-gray-400 !mb-2">
-                  commission type
+                <label htmlFor="type" className="block text-gray-400 !mb-2 ">
+                  Commission Type
                 </label>
-                <Input
-                  id="type"
-                  type="text"
+                <Select
                   value={selectedRow?.type || ""}
-                  onChange={(e) => onChange("type", e.target.value)}
-                  className="text-bg-primary !p-4"
-                  placeholder="Enter commission type"
-                />
+                  onValueChange={(value) => onChange("type", value)}
+                >
+                  <SelectTrigger className="!my-2 text-bg-primary !p-4 w-full">
+                    <SelectValue placeholder="Select commission type" />
+                  </SelectTrigger>
+                   <SelectContent className="bg-white !p-2">
+                    <SelectItem value="percentage">Percentage</SelectItem>
+                    <SelectItem value="value">Value</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* commission amount Field */}

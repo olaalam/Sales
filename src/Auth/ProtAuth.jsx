@@ -6,7 +6,7 @@ const ProtAuth = ({ children }) => {
 
   if (token) {
     toast.warn('You are already logged in');
-    return <Navigate to="/" />;
+    return <Navigate to="/users" />;
   }
 
   return children;

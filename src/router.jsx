@@ -33,6 +33,10 @@ import LeadAdd from "./Pages/Lead/LeadAdd";
 import PaymentAdd from "./Pages/Payment/PaymentAdd";
 import CommissionAdd from "./Pages/Commission/CommissionAdd";
 import SalesManagementAdd from "./Pages/SalesManangement/SalesManagementAdd";
+import City from "./Pages/City/City";
+import CityAdd from "./Pages/City/CityAdd";
+import Country from "./Pages/Country/Country";
+import CountryAdd from "./Pages/Country/CountryAdd";
 
 const router = createBrowserRouter([
   {
@@ -342,7 +346,48 @@ const router = createBrowserRouter([
           },
         ],
       },
-
+      {
+        path: "city",
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <City />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "add",
+            element: (
+              <ProtectedRoute>
+                <CityAdd />
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+            {
+        path: "country",
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Country />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "add",
+            element: (
+              <ProtectedRoute>
+                <CountryAdd />
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
       {
         path: "*",
         element: <NotFound />,

@@ -11,30 +11,33 @@ export default function LeadAdd() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const isLoading = useSelector((state) => state.loader.isLoading);
+
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [salesOptions, setSalesOptions] = useState([]);
   const [activityOptions, setActivityOptions] = useState([]);
-  // Add a state for source options
   const [sourceOptions, setSourceOptions] = useState([]);
+  const [countryOptions, setCountryOptions] = useState([]);
+  const [cityOptions, setCityOptions] = useState([]); // All cities fetched
 
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    address: "",
+
     type: "",
     sales_id: "",
     activity_id: "",
     status: "intersted",
-    // Add source_id to the formData state
     source_id: "",
+    country: "",
+    city: "",
   });
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
 
-  // Fetch Sales, Activity, and Source options
   const fetchOptions = async () => {
     try {
       const response = await fetch(
@@ -54,11 +57,15 @@ export default function LeadAdd() {
 
         const sales = result?.data?.data?.SalesOptions || [];
         const activities = result?.data?.data?.ActivityOptions || [];
-        const sources = result?.data?.data?.SourceOptions || []; // Assuming your API returns SourceOptions
+        const sources = result?.data?.data?.SourceOptions || [];
+        const countries = result?.data?.data?.CountryOptions || [];
+        const cities = result?.data?.data?.CityOptions || [];
 
         setSalesOptions(sales);
         setActivityOptions(activities);
-        setSourceOptions(sources); // Set the source options
+        setSourceOptions(sources);
+        setCountryOptions(countries);
+        setCityOptions(cities);
       } else {
         console.error("Failed to fetch options:", response.status);
       }
@@ -72,19 +79,35 @@ export default function LeadAdd() {
   }, []);
 
   const handleInputChange = (name, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const newState = {
+        ...prev,
+        [name]: value,
+      };
+
+      // 🟢 Implement dependency logic: Reset city when country changes
+      if (name === "country") {
+        newState.city = ""; 
+      }
+
+      return newState;
+    });
   };
 
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
-    // Validation (dynamic)
-    const requiredFields = ["name", "phone", "address", "type", "sales_id", "activity_id", "status"];
-    // Conditionally add source_id to requiredFields if type is "company"
-    if (formData.type === "company") {
-      requiredFields.push("source_id");
-    }
+    // Validation
+    const requiredFields = [
+      "name", 
+      "phone", 
+      "type", 
+      "sales_id", 
+      "activity_id", 
+      "status", 
+      "country", 
+      "city", 
+      "source_id"
+    ];
     
     const missingField = requiredFields.find((field) => !formData[field]);
 
@@ -96,18 +119,23 @@ export default function LeadAdd() {
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
       name: formData.name,
       phone: formData.phone,
-      address: formData.address,
       type: formData.type,
       status: formData.status,
       sales_id: formData.sales_id,
       activity_id: formData.activity_id,
-      // Conditionally add source_id to the payload
-      ...(formData.type === "company" && { source_id: formData.source_id }),
+      country: formData.country,
+      city: formData.city,
+      source_id: formData.source_id,
     };
 
     console.log("Payload being sent:", payload);
@@ -134,12 +162,13 @@ export default function LeadAdd() {
         setFormData({
           name: "",
           phone: "",
-          address: "",
           type: "",
           sales_id: "",
           activity_id: "",
           status: "intersted",
-          source_id: "", // Reset source_id
+          source_id: "",
+          country: "",
+          city: "",
         });
 
         navigate("/lead");
@@ -147,9 +176,11 @@ export default function LeadAdd() {
         const errorData = await response.json();
         console.error("Create failed:", errorData);
 
-        toast.error(errorData?.error?.message || "Failed to create lead", {
+        const errorMessage = errorData?.error?.message?.message || errorData?.error?.message || "Failed to create lead";
+
+        toast.error(errorMessage, {
           position: "top-right",
-          autoClose: 3000,
+          autoClose: 5000,
         });
       }
     } catch (error) {
@@ -159,11 +190,12 @@ export default function LeadAdd() {
         autoClose: 3000,
       });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
-  // Prepare options for dropdowns
   const salesDropdown = salesOptions.map((s) => ({
     value: s._id,
     label: s.name,
@@ -179,11 +211,24 @@ export default function LeadAdd() {
     label: s.name,
   }));
 
-  // Define the base form fields and conditionally add the source field
-  const baseFields = [
+  const countryDropdown = countryOptions.map((c) => ({
+    value: c._id,
+    label: c.name,
+  }));
+
+  // 🔴 FIXED: Filter city options based on selected country using the 'country' key
+  const filteredCityOptions = cityOptions.filter(
+    (city) => city.country === formData.country
+  );
+
+  const cityDropdown = filteredCityOptions.map((c) => ({
+    value: c._id,
+    label: c.name,
+  }));
+
+  const fields = [
     { type: "input", placeholder: "Full Name *", name: "name", required: true },
     { type: "input", placeholder: "Phone *", name: "phone", required: true },
-    { type: "input", placeholder: "Address *", name: "address", required: true },
     {
       type: "select",
       placeholder: "Type *",
@@ -208,6 +253,34 @@ export default function LeadAdd() {
       required: true,
       options: activityDropdown,
     },
+    // Country Select (Master)
+    {
+      type: "select",
+      placeholder: "Select Country *",
+      name: "country",
+      required: true,
+      options: countryDropdown,
+    },
+    // City Select (Dependent) - Note: City options are now filtered
+    {
+      type: "select",
+      placeholder: 
+        formData.country 
+          ? "Select City *" 
+          : "Select Country first *",
+      name: "city",
+      required: true,
+      options: cityDropdown,
+      // Disable City if no Country is selected or if the filtered list is empty
+      disabled: !formData.country || cityDropdown.length === 0, 
+    },
+    {
+      type: "select",
+      placeholder: "Select Source *",
+      name: "source_id",
+      required: true,
+      options: sourceDropdown,
+    },
     {
       type: "select",
       placeholder: "Status *",
@@ -224,18 +297,6 @@ export default function LeadAdd() {
     },
   ];
 
-  // Conditionally add the source field using a spread operator
-  const fields = [
-    ...baseFields,
-    ...(formData.type === "company" ? [{
-      type: "select",
-      placeholder: "Select Source *",
-      name: "source_id",
-      required: true,
-      options: sourceDropdown,
-    }] : []),
-  ];
-
   return (
     <div className="w-full !p-6 relative">
       <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 9999 }} />
@@ -250,11 +311,15 @@ export default function LeadAdd() {
 
       <div className="!my-6">
         <Button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create Lead
+          {isSubmitting ? "Creating..." : "Create Lead"}
         </Button>
       </div>
     </div>

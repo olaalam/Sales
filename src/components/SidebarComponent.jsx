@@ -1,22 +1,7 @@
 import { useLocation, Link } from "react-router-dom";
 import {
   Home,
-  Map,
-  Building2,
-  Building,
-  User,
-  Settings,
-  CreditCard,
-  Grid,
-  FileText,
-  Database,
-  Package,
   ChevronDown,
-  DollarSign,
-  Shield,
-  Wrench,
-  Users,
-  ShoppingBag,
 } from "lucide-react";
 
 import {
@@ -44,8 +29,20 @@ const navItems = [
   { label: "Sales", to: "/sale", icon: <Home size={20} /> },
   { label: "Lead", to: "/lead", icon: <Home size={20} /> },
   { label: "Payment", to: "/payment", icon: <Home size={20} /> },
-  { label: "SalesManagement", to: "/sales-management", icon: <Home size={20} /> },
+  {
+    label: "SalesManagement",
+    to: "/sales-management",
+    icon: <Home size={20} />,
+  },
   { label: "Commission", to: "/commission", icon: <Home size={20} /> },
+  {
+    label: "Locations",
+    icon: <Home size={20} />,
+    children: [
+      { label: "City", to: "/city", icon: <Home size={18} /> },
+      { label: "Country", to: "/country", icon: <Home size={18} /> },
+    ],
+  },
 ];
 
 export function AppSidebar() {
@@ -82,48 +79,45 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         onClick={() => handleGroupClick(item.label)}
                         className={`flex justify-between items-center gap-3 !px-4 !py-2 text-white transition-all duration-200 text-sm font-medium w-full
-                                          ${isSidebarOpen ? "rounded-full" : ""}
-                                          ${
-                                            isGroupOpen
-                                              ? "bg-white text-bg-primary shadow-md"
-                                              : "hover:bg-white hover:text-bg-primary"
-                                          }`}
+                          ${isSidebarOpen ? "rounded-full" : ""}
+                          ${
+                            isGroupOpen
+                              ? "bg-white text-bg-primary shadow-md"
+                              : "hover:bg-white hover:text-bg-primary"
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           {item.icon}
                           <span className="text-base">{item.label}</span>
                         </div>
-                        {item.dropdownIcon && (
-                          <span
-                            className={`transition-transform duration-200 ${
-                              isGroupOpen ? "rotate-180" : ""
-                            }`}
-                          >
-                            {item.dropdownIcon}
-                          </span>
-                        )}
+
+                        {/* السهم اللي بيتحرك */}
+                        <ChevronDown
+                          size={18}
+                          className={`transition-transform duration-200 ${
+                            isGroupOpen ? "rotate-180" : ""
+                          }`}
+                        />
                       </SidebarMenuButton>
+
                       {isGroupOpen && (
                         <SidebarGroupContent className="ps-6 pt-2 pb-2">
                           <SidebarMenu className="flex flex-col gap-2">
                             {item.children.map((childItem) => {
-                              const isActive = location.pathname === childItem.to;
+                              const isActive =
+                                location.pathname === childItem.to;
                               return (
                                 <SidebarMenuItem key={childItem.label}>
                                   <Link to={childItem.to} className="w-full">
                                     <SidebarMenuButton
                                       isActive={isActive}
                                       className={`flex justify-start items-center gap-3 !px-4 !py-2 text-white transition-all duration-200 text-sm font-medium
-                                                            ${
-                                                              isSidebarOpen
-                                                                ? "rounded-full"
-                                                                : ""
-                                                            }
-                                                            ${
-                                                              isActive
-                                                                ? "bg-white text-bg-primary shadow-md"
-                                                                : "hover:bg-white hover:text-bg-primary"
-                                                            }`}
+                                        ${isSidebarOpen ? "rounded-full" : ""}
+                                        ${
+                                          isActive
+                                            ? "bg-white text-bg-primary shadow-md"
+                                            : "hover:bg-white hover:text-bg-primary"
+                                        }`}
                                     >
                                       {childItem.icon}
                                       <span className="text-base">
@@ -147,12 +141,12 @@ export function AppSidebar() {
                         <SidebarMenuButton
                           isActive={isActive}
                           className={`flex justify-start items-center gap-3 !px-4 !py-2 text-white transition-all duration-200 text-sm font-medium
-                                          ${isSidebarOpen ? "rounded-full" : ""}
-                                          ${
-                                            isActive
-                                              ? "bg-white text-bg-primary shadow-md"
-                                              : "hover:bg-white hover:text-bg-primary"
-                                          }`}
+                            ${isSidebarOpen ? "rounded-full" : ""}
+                            ${
+                              isActive
+                                ? "bg-white text-bg-primary shadow-md"
+                                : "hover:bg-white hover:text-bg-primary"
+                            }`}
                         >
                           {item.icon}
                           <span className="text-base">{item.label}</span>

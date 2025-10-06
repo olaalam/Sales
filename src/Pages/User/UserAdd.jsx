@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import Add from "@/components/AddFieldSection";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useDispatch, useSelector } from 'react-redux';
-import { showLoader, hideLoader } from '@/Store/LoaderSpinner';
+import { useDispatch, useSelector } from "react-redux";
+import { showLoader, hideLoader } from "@/Store/LoaderSpinner";
 import FullPageLoader from "@/components/Loading";
 import { useNavigate } from "react-router-dom";
 
@@ -42,7 +42,7 @@ export default function UserAdd() {
       if (response.ok) {
         const result = await response.json();
         console.log("Targets API response:", result);
-        
+
         // Handle different possible response structures
         let targetsData = [];
         if (result.data && Array.isArray(result.data)) {
@@ -52,7 +52,7 @@ export default function UserAdd() {
         } else if (Array.isArray(result)) {
           targetsData = result;
         }
-        
+
         setTargets(targetsData);
         console.log("Targets set:", targetsData);
       } else {
@@ -79,21 +79,23 @@ export default function UserAdd() {
   const handleSubmit = async () => {
     // Validation
     if (!formData.name || !formData.email || !formData.password || !formData.role) {
-      toast.error("Please fill in all required fields", { position: "top-right", autoClose: 3000 });
+      toast.error("Please fill in all required fields", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return;
     }
 
     dispatch(showLoader());
 
     const payload = {
-      name: formData.name,
-      email: formData.email,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
       password: formData.password,
       role: formData.role,
       status: formData.status === "active" ? "Active" : "inactive",
     };
 
-    // Only add target_id if it's selected
     if (formData.target_id) {
       payload.target_id = formData.target_id;
     }
@@ -112,7 +114,10 @@ export default function UserAdd() {
 
       if (response.ok) {
         const result = await response.json();
-        toast.success("User created successfully!", { position: "top-right", autoClose: 3000 });
+        toast.success("User created successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
         setFormData({
           name: "",
           email: "",
@@ -121,32 +126,36 @@ export default function UserAdd() {
           target_id: "",
           status: "active",
         });
-        navigate("/users");
+        setTimeout(() => navigate("/users"), 2000);
       } else {
         const errorData = await response.json();
         console.error("Create failed:", errorData);
-        
-        // Handle specific error messages
-        if (errorData.error.message) {
-          toast.error(errorData.error.message, { position: "top-right", autoClose: 3000 });
-        } else if (errorData.error) {
-          toast.error(errorData.error, { position: "top-right", autoClose: 3000 });
-        } else {
-          toast.error("Failed to create user", { position: "top-right", autoClose: 3000 });
-        }
+
+        let errorMessage = "Failed to create user";
+        if (errorData.error?.message) errorMessage = errorData.error.message;
+        else if (errorData.error) errorMessage = errorData.error;
+        else if (errorData.message) errorMessage = errorData.message;
+
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
     } catch (error) {
       console.error("Error creating user:", error);
-      toast.error("An error occurred while creating user!", { position: "top-right", autoClose: 3000 });
+      toast.error("An error occurred while creating user!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
     } finally {
       dispatch(hideLoader());
     }
   };
 
   // Prepare target options for dropdown
-  const targetOptions = targets.map(target => ({
+  const targetOptions = targets.map((target) => ({
     value: target._id || target.id,
-    label: `${target.name} (${target.point || target.points || 0} points)`
+    label: `${target.name} (${target.point || target.points || 0} points)`,
   }));
 
   // Define form fields
@@ -199,20 +208,9 @@ export default function UserAdd() {
   ];
 
   return (
-    <div className="w-full !p-6 relative">
+    <div className="w-full p-6 relative">
       {isLoading && <FullPageLoader />}
-       <ToastContainer
-      position="top-right"
-      autoClose={3000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      style={{ zIndex: 9999 }}
-    />
+      <ToastContainer position="top-right" autoClose={3000} />
 
       <h2 className="text-bg-primary text-center !pb-10 text-xl font-semibold !mb-10">
         Add User
@@ -222,12 +220,28 @@ export default function UserAdd() {
         <Add fields={fields} values={formData} onChange={handleInputChange} />
       </div>
 
-      <div className="!my-6">
+      <div className="!my-6 flex justify-center">
         <Button
           onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          disabled={
+            isLoading ||
+            !formData.name.trim() ||
+            !formData.email.trim() ||
+            !formData.password.trim() ||
+            !formData.role.trim()
+          }
+          className={`!mb-10 w-[30%] rounded-[15px] !px-5 !py-6 text-white transition-all duration-200
+            ${
+              isLoading ||
+              !formData.name.trim() ||
+              !formData.email.trim() ||
+              !formData.password.trim() ||
+              !formData.role.trim()
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-bg-primary hover:bg-teal-600 cursor-pointer"
+            }`}
         >
-          Create User
+          {isLoading ? "Creating..." : "Create User"}
         </Button>
       </div>
     </div>

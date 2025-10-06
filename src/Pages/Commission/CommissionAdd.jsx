@@ -11,11 +11,13 @@ export default function CommissionAdd() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const isLoading = useSelector((state) => state.loader.isLoading);
+
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     level_name: "",
-    type: "", // This will be a select field
+    type: "",
     amount: "",
     point_threshold: "",
   });
@@ -31,6 +33,7 @@ export default function CommissionAdd() {
     }));
   };
 
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
     // Validation
     if (
@@ -46,6 +49,11 @@ export default function CommissionAdd() {
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
@@ -115,6 +123,8 @@ export default function CommissionAdd() {
         autoClose: 3000,
       });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
@@ -124,14 +134,14 @@ export default function CommissionAdd() {
     {
       type: "input",
       placeholder: "Level Name *",
-      name: "level_name", // Changed to match formData state
+      name: "level_name",
       required: true,
       inputType: "text",
     },
     {
-      type: "select", // Changed to 'select'
+      type: "select",
       placeholder: "Commission Type *",
-      name: "type", // Correct name for state
+      name: "type",
       required: true,
       options: [
         { value: "percentage", label: "Percentage" },
@@ -182,12 +192,17 @@ export default function CommissionAdd() {
       </div>
 
       <div className="!my-6">
+        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create Commission
+          {isSubmitting ? "Creating..." : "Create Commission"}
         </Button>
       </div>
     </div>

@@ -12,6 +12,9 @@ export default function PayMethodAdd() {
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
+  // ✅ 1️⃣ State للتحميل
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     en: {
       name: "",
@@ -19,46 +22,44 @@ export default function PayMethodAdd() {
       status: true,
       logo_url: null,
     },
-
   });
 
-const handleFieldChange = (lang, name, value) => {
-  let finalValue = value;
+  const handleFieldChange = (lang, name, value) => {
+    let finalValue = value;
 
-  if (name === "status") {
-    finalValue = Boolean(value); // ← تأكد إنها boolean حقيقية
-  }
+    if (name === "status") {
+      finalValue = Boolean(value);
+    }
 
-  if (name === "logo_url" && value instanceof File) {
-    const reader = new FileReader();
-    reader.onloadend = () => {
+    if (name === "logo_url" && value instanceof File) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          [lang]: {
+            ...prev[lang],
+            [name]: reader.result,
+          },
+        }));
+      };
+      reader.onerror = (error) => {
+        console.error("Error processing logo file:", error);
+        toast.error("Failed to process logo file.");
+      };
+      reader.readAsDataURL(value);
+    } else {
       setFormData((prev) => ({
         ...prev,
         [lang]: {
           ...prev[lang],
-          [name]: reader.result,
+          [name]: finalValue,
         },
       }));
-    };
-    reader.onerror = (error) => {
-      console.error("Error processing logo file:", error);
-      toast.error("Failed to process logo file.");
-    };
-    reader.readAsDataURL(value);
-  } else {
-    setFormData((prev) => ({
-      ...prev,
-      [lang]: {
-        ...prev[lang],
-        [name]: finalValue,
-      },
-    }));
-  }
-};
+    }
+  };
 
-
+  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
-    // Validate required fields
     if (!formData.en.name.trim()) {
       toast.error("Payment method name is required!");
       return;
@@ -69,16 +70,19 @@ const handleFieldChange = (lang, name, value) => {
       return;
     }
 
+    // ⛔ منع الإرسال المتكرر
+    if (isSubmitting) return;
+
+    // ✅ تفعيل حالة الإرسال
+    setIsSubmitting(true);
     dispatch(showLoader());
 
-const payload = {
-  name: formData.en.name,
-  description: formData.en.description,
-  status: formData.en.status, // ← كده تمام
-  logo_url: formData.en.logo_url,
-};
-
-
+    const payload = {
+      name: formData.en.name,
+      description: formData.en.description,
+      status: formData.en.status,
+      logo_url: formData.en.logo_url,
+    };
 
     console.log("Submitting payment method with data:", payload);
 
@@ -111,7 +115,6 @@ const payload = {
               status: "true",
               logo_url: null,
             },
-
           });
 
           setTimeout(() => {
@@ -147,6 +150,8 @@ const payload = {
         autoClose: 3000,
       });
     } finally {
+      // ✅ إيقاف حالة الإرسال في جميع الحالات
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
@@ -199,11 +204,17 @@ const payload = {
       </div>
 
       <div className="!my-6">
+        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
-          onClick={handleSubmit}
-          className="bg-bg-primary !mb-10 !ms-3 cursor-pointer hover:bg-teal-600 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200"
+          onClick={isSubmitting ? undefined : handleSubmit}
+          disabled={isSubmitting}
+          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-bg-primary cursor-pointer hover:bg-teal-600"
+          }`}
         >
-          Create Payment Method
+          {isSubmitting ? "Creating..." : "Create Payment Method"}
         </Button>
       </div>
     </div>
