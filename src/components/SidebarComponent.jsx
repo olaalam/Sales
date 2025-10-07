@@ -34,6 +34,7 @@ import {
 import { useState } from "react";
 
 const navItems = [
+  {label: "Home", to: "/", icon: <Home size={20} /> },
   { label: "Users", to: "/users", icon: <Users size={20} /> },
   { label: "Targets", to: "/target", icon: <Target size={20} /> },
   { label: "Sources", to: "/source", icon: <Layers size={20} /> },

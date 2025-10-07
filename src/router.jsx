@@ -39,6 +39,7 @@ import Country from "./Pages/Country/Country";
 import CountryAdd from "./Pages/Country/CountryAdd";
 import Popus from "./Pages/POPUS/Popus";
 import PopAdd from "./Pages/POPUS/PopusAdd";
+import Home from "./Pages/Home";
 
 const router = createBrowserRouter([
   {
@@ -62,6 +63,14 @@ const router = createBrowserRouter([
       </SidebarProvider>
     ),
     children: [
+           {
+        path: "/",
+        element: (
+          <ProtectedRoute permissionKey="Home">
+            <Home />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: "/users",
         children: [
