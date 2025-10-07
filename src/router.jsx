@@ -37,6 +37,8 @@ import City from "./Pages/City/City";
 import CityAdd from "./Pages/City/CityAdd";
 import Country from "./Pages/Country/Country";
 import CountryAdd from "./Pages/Country/CountryAdd";
+import Popus from "./Pages/POPUS/Popus";
+import PopAdd from "./Pages/POPUS/PopusAdd";
 
 const router = createBrowserRouter([
   {
@@ -383,6 +385,27 @@ const router = createBrowserRouter([
             element: (
               <ProtectedRoute>
                 <CountryAdd />
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+                  {
+        path: "pop",
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Popus />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "add",
+            element: (
+              <ProtectedRoute>
+                <PopAdd />
               </ProtectedRoute>
             ),
           },

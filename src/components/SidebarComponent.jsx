@@ -1,7 +1,23 @@
 import { useLocation, Link } from "react-router-dom";
 import {
   Home,
+  Users,
+  Target,
+  Wallet,
+  ShoppingBag,
+  Gift,
+  Trophy,
+  Handshake,
+  Activity,
+  Banknote,
+  Layers,
+  MapPin,
+  Building,
+  Map,
   ChevronDown,
+  BarChart3,
+  CreditCard,
+  FileBox,
 } from "lucide-react";
 
 import {
@@ -18,29 +34,26 @@ import {
 import { useState } from "react";
 
 const navItems = [
-  { label: "Users", to: "/users", icon: <Home size={20} /> },
-  { label: "Targets", to: "/target", icon: <Home size={20} /> },
-  { label: "Sources", to: "/source", icon: <Home size={20} /> },
-  { label: "Activities", to: "/activity", icon: <Home size={20} /> },
-  { label: "PaymentMethod", to: "/payment-method", icon: <Home size={20} /> },
-  { label: "Products", to: "/product", icon: <Home size={20} /> },
-  { label: "Offers", to: "/offer", icon: <Home size={20} /> },
-  { label: "Leaders", to: "/leader", icon: <Home size={20} /> },
-  { label: "Sales", to: "/sale", icon: <Home size={20} /> },
-  { label: "Lead", to: "/lead", icon: <Home size={20} /> },
-  { label: "Payment", to: "/payment", icon: <Home size={20} /> },
-  {
-    label: "SalesManagement",
-    to: "/sales-management",
-    icon: <Home size={20} />,
-  },
-  { label: "Commission", to: "/commission", icon: <Home size={20} /> },
+  { label: "Users", to: "/users", icon: <Users size={20} /> },
+  { label: "Targets", to: "/target", icon: <Target size={20} /> },
+  { label: "Sources", to: "/source", icon: <Layers size={20} /> },
+  { label: "Activities", to: "/activity", icon: <Activity size={20} /> },
+  { label: "PaymentMethod", to: "/payment-method", icon: <CreditCard size={20} /> },
+  { label: "Products", to: "/product", icon: <ShoppingBag size={20} /> },
+  { label: "Offers", to: "/offer", icon: <Gift size={20} /> },
+  { label: "Leaders", to: "/leader", icon: <Trophy size={20} /> },
+  { label: "Sales", to: "/sale", icon: <BarChart3 size={20} /> },
+  { label: "Lead", to: "/lead", icon: <Handshake size={20} /> },
+  { label: "Payment", to: "/payment", icon: <Wallet size={20} /> },
+  { label: "Popup", to: "/pop", icon: <FileBox size={20} /> },
+  { label: "SalesManagement", to: "/sales-management", icon: <Banknote size={20} /> },
+  { label: "Commission", to: "/commission", icon: <Layers size={20} /> },
   {
     label: "Locations",
-    icon: <Home size={20} />,
+    icon: <MapPin size={20} />,
     children: [
-      { label: "City", to: "/city", icon: <Home size={18} /> },
-      { label: "Country", to: "/country", icon: <Home size={18} /> },
+      { label: "City", to: "/city", icon: <Building size={18} /> },
+      { label: "Country", to: "/country", icon: <Map size={18} /> },
     ],
   },
 ];
@@ -91,7 +104,6 @@ export function AppSidebar() {
                           <span className="text-base">{item.label}</span>
                         </div>
 
-                        {/* السهم اللي بيتحرك */}
                         <ChevronDown
                           size={18}
                           className={`transition-transform duration-200 ${
