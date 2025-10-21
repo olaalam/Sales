@@ -29,12 +29,13 @@ export default function Add({ fields, values, onChange }) {
     "rounded-[15px] border border-gray-300 focus:border-bg-primary focus:ring-bg-primary";
 
   const handleChange = (lang, name, value) => {
+    if (value === undefined || value === "undefined") return; // ✅ منع undefined
     const currentValue = lang ? values?.[lang]?.[name] : values?.[name];
-    if (currentValue === value) return; // prevent unnecessary state updates
+    if (currentValue === value) return;
     if (lang) {
       onChange(lang, name, value);
     } else {
-      onChange(name, value);
+      onChange(name, String(value));
     }
   };
 
@@ -246,7 +247,9 @@ const ComboboxComponent = ({
   commonInputClass,
 }) => {
   const [open, setOpen] = useState(false);
-  const selectedLabel = options.find((option) => option.value === value)?.label;
+  const selectedLabel = options.find(
+    (option) => String(option.value) === String(value)
+  )?.label;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -275,14 +278,18 @@ const ComboboxComponent = ({
                   key={option.value}
                   value={option.label}
                   onSelect={() => {
-                    onValueChange(option.value);
+                    if (option.value !== undefined && option.value !== null) {
+                      onValueChange(String(option.value));
+                    }
                     setOpen(false);
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
+                      String(value) === String(option.value)
+                        ? "opacity-100"
+                        : "opacity-0"
                     )}
                   />
                   {option.label}

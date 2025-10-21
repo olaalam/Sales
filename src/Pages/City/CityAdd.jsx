@@ -133,7 +133,7 @@ export default function CityAdd() {
 
   // ✅ Dropdown options
   const countryOptions = countries.map((country) => ({
-    value: country._id,
+    value: country.id,
     label: country.name,
   }));
 

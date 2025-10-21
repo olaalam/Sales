@@ -95,14 +95,14 @@ const Lead = () => {
           phone: lead.phone,
           type: lead.type || "—",
           status: lead.status || "interested", // Corrected typo
-          activity_id: lead.activity_id?.name || "—",
-          sales_id: lead.sales_id?.name || "—",
+          activity_id: lead.activity?.name || lead.activity_id?.name || "—",
+          sales_id: lead.sales?.name || lead.sales_id?.name || "—",
           transfer: lead.transfer ? "true" : "false",
           created_at,
-          sales_id_value: lead.sales_id?._id || undefined,
-          activity_id_value: lead.activity_id?._id || undefined,
-          source_id: lead.source_id?.name || "—",
-          source_id_value: lead.source_id?._id || undefined,
+          sales_id_value: lead.sales_id?._id || lead.sales?._id || undefined,
+          activity_id_value: lead.activity_id?._id || lead.activity?._id || undefined,
+          source_id: lead.source?.name || lead.source_id?.name || "—",
+          source_id_value: lead.source_id?._id || lead.source?._id || undefined,
           country: lead.country?._id || null,
           city: lead.city?._id || null,
           city_name: lead.city?.name || "—",
@@ -302,10 +302,10 @@ const Lead = () => {
     { key: "phone", label: "Phone" },
     { key: "location_display", label: "Country / City" },
     { key: "type", label: "Type" },
-    { key: "activity_id", label: "Activity" },
-    { key: "sales_id", label: "Sales" },
+    { key: "activity_id", label: "Activity" }, // Ensured to display
+    { key: "sales_id", label: "Sales" },      // Ensured to display
+    { key: "source_id", label: "Source" },    // Ensured to display
     { key: "transfer", label: "Transfer" },
-    { key: "source_id", label: "Source" },
     { key: "status", label: "Status" },
   ];
 
@@ -329,7 +329,7 @@ const Lead = () => {
         addRoute="/lead/add"
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onToggleStatus={handleToggleStatus} // Added prop
+        onToggleStatus={handleToggleStatus}
         showEditButton={true}
         showDeleteButton={true}
         showActions={true}
@@ -341,225 +341,218 @@ const Lead = () => {
         isLoadingDelete={isDeleting}
       />
 
-      {selectedRow && (
-        <>
-          <EditDialog
-            open={isEditOpen}
-            onOpenChange={setIsEditOpen}
-            onSave={handleSave}
-            selectedRow={selectedRow}
-            columns={columns}
-            onChange={onChange}
-            isLoading={isSaving}
-          >
-            {/* Basic info */}
-            <label htmlFor="name" className="text-gray-400 !pb-3">
-              Name
-            </label>
-            <Input
-              id="name"
-              value={selectedRow?.name || ""}
-              onChange={(e) => onChange("name", e.target.value)}
-              className="!my-2 text-bg-primary !p-4"
-              placeholder="Enter lead name"
-            />
-
-            <label htmlFor="phone" className="text-gray-400 !pb-3">
-              Phone
-            </label>
-            <Input
-              id="phone"
-              type="phone"
-              value={selectedRow?.phone || ""}
-              onChange={(e) => onChange("phone", e.target.value)}
-              className="!my-2 text-bg-primary !p-4"
-              placeholder="Enter phone"
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Type */}
-              <div>
-                <label htmlFor="type" className="text-gray-400 !pb-3">
-                  Type
-                </label>
-                <Select
-                  value={selectedRow?.type || undefined}
-                  onValueChange={(value) => onChange("type", value)}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white !p-2">
-                    <SelectItem value="sales">Sales</SelectItem>
-                    <SelectItem value="company">Company</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sales */}
-              <div>
-                <label htmlFor="sales_id" className="text-gray-400 !pb-3">
-                  Sales
-                </label>
-                <Select
-                  value={selectedRow?.sales_id || undefined}
-                  onValueChange={(value) => onChange("sales_id", value)}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select sales" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white !p-2">
-                    {salesOptions.length > 0 ? (
-                      salesOptions.map((option) => (
-                        <SelectItem key={option._id} value={option._id}>
-                          {option.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-sales" disabled>
-                        No sales available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Activity */}
-              <div>
-                <label htmlFor="activity_id" className="text-gray-400 !pb-3">
-                  Activity
-                </label>
-                <Select
-                  value={selectedRow?.activity_id || undefined}
-                  onValueChange={(value) => onChange("activity_id", value)}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select activity" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white !p-2">
-                    {activityOptions.length > 0 ? (
-                      activityOptions.map((option) => (
-                        <SelectItem key={option._id} value={option._id}>
-                          {option.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-activities" disabled>
-                        No activities available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Source */}
-              <div>
-                <label htmlFor="source_id" className="text-gray-400 !pb-3">
-                  Source <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  value={selectedRow?.source_id || undefined}
-                  onValueChange={(value) => onChange("source_id", value)}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select source" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white !p-2">
-                    {sourceOptions.length > 0 ? (
-                      sourceOptions.map((option) => (
-                        <SelectItem key={option._id} value={option._id}>
-                          {option.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-sources" disabled>
-                        No sources available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Country */}
-              <div>
-                <label htmlFor="country" className="text-gray-400 !pb-3">
-                  Country
-                </label>
-                <Select
-                  value={selectedRow?.country || undefined}
-                  onValueChange={(value) => {
-                    onChange("country", value);
-                    onChange("city", null); // Reset city when changing country
-                  }}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white !p-2">
-                    {countries.length > 0 ? (
-                      countries.map((country) => (
-                        <SelectItem key={country._id} value={country._id}>
-                          {country.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-country" disabled>
-                        No countries available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* City */}
-              <div>
-                <label htmlFor="city" className="text-gray-400 !pb-3">
-                  City
-                </label>
-                <Select
-                  value={selectedRow?.city || undefined}
-                  onValueChange={(value) => onChange("city", value)}
-                  disabled={!selectedRow?.country}
-                >
-                  <SelectTrigger className="!my-2 text-bg-primary !p-4">
-                    <SelectValue
-                      placeholder={
-                        selectedRow?.country
-                          ? "Select city"
-                          : ""
-                          
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white !p-2">
-                    {filteredCities.length > 0 ? (
-                      filteredCities.map((city) => (
-                        <SelectItem key={city._id} value={city._id}>
-                          {city.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-city" disabled>
-                        No cities available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-
-            </div>
-          </EditDialog>
-
-          <DeleteDialog
-            open={isDeleteOpen}
-            onOpenChange={setIsDeleteOpen}
-            onDelete={handleDeleteConfirm}
-            name={selectedRow.name}
-            isLoading={isDeleting}
+{selectedRow && (
+  <>
+    <EditDialog
+      open={isEditOpen}
+      onOpenChange={setIsEditOpen}
+      onSave={handleSave}
+      selectedRow={selectedRow}
+      columns={columns}
+      onChange={onChange}
+      isLoading={isSaving}
+    >
+      {/* Basic info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="name" className="text-gray-400 block pb-2">
+            Name <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="name"
+            value={selectedRow?.name || ""}
+            onChange={(e) => onChange("name", e.target.value)}
+            className="w-full p-3 border border-teal-500 rounded-md text-black"
+            placeholder="Enter lead name"
           />
-        </>
-      )}
+        </div>
+
+        <div>
+          <label htmlFor="phone" className="text-gray-400 block pb-2">
+            Phone <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="phone"
+            type="tel"
+            value={selectedRow?.phone || ""}
+            onChange={(e) => onChange("phone", e.target.value)}
+            className="w-full p-3 border border-teal-500 rounded-md text-black"
+            placeholder="Enter phone"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="type" className="text-gray-400 block pb-2">
+            Type <span className="text-red-500">*</span>
+          </label>
+          <Select
+            value={selectedRow?.type || undefined}
+            onValueChange={(value) => onChange("type", value)}
+          >
+            <SelectTrigger className="w-full p-3 border border-teal-500 rounded-md text-black bg-white">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-teal-500 rounded-md">
+              <SelectItem value="sales">Sales</SelectItem>
+              <SelectItem value="company">Company</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label htmlFor="sales_id" className="text-gray-400 block pb-2">
+            Sales
+          </label>
+          <Select
+            value={selectedRow?.sales_id || undefined}
+            onValueChange={(value) => onChange("sales_id", value)}
+          >
+            <SelectTrigger className="w-full p-3 border border-teal-500 rounded-md text-black bg-white">
+              <SelectValue placeholder="Select sales" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-teal-500 rounded-md">
+              {salesOptions.length > 0 ? (
+                salesOptions.map((option) => (
+                  <SelectItem key={option._id} value={option._id}>
+                    {option.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-sales" disabled>
+                  No sales available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label htmlFor="activity_id" className="text-gray-400 block pb-2">
+            Activity
+          </label>
+          <Select
+            value={selectedRow?.activity_id || undefined}
+            onValueChange={(value) => onChange("activity_id", value)}
+          >
+            <SelectTrigger className="w-full p-3 border border-teal-500 rounded-md text-black bg-white">
+              <SelectValue placeholder="Select activity" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-teal-500 rounded-md">
+              {activityOptions.length > 0 ? (
+                activityOptions.map((option) => (
+                  <SelectItem key={option._id} value={option._id}>
+                    {option.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-activities" disabled>
+                  No activities available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label htmlFor="source_id" className="text-gray-400 block pb-2">
+            Source <span className="text-red-500">*</span>
+          </label>
+          <Select
+            value={selectedRow?.source_id || undefined}
+            onValueChange={(value) => onChange("source_id", value)}
+          >
+            <SelectTrigger className="w-full p-3 border border-teal-500 rounded-md text-black bg-white">
+              <SelectValue placeholder="Select source" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-teal-500 rounded-md">
+              {sourceOptions.length > 0 ? (
+                sourceOptions.map((option) => (
+                  <SelectItem key={option._id} value={option._id}>
+                    {option.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-sources" disabled>
+                  No sources available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label htmlFor="country" className="text-gray-400 block pb-2">
+            Country <span className="text-red-500">*</span>
+          </label>
+          <Select
+            value={selectedRow?.country || undefined}
+            onValueChange={(value) => {
+              onChange("country", value);
+              onChange("city", null);
+            }}
+          >
+            <SelectTrigger className="w-full p-3 border border-teal-500 rounded-md text-black bg-white">
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-teal-500 rounded-md">
+              {countries.length > 0 ? (
+                countries.map((country) => (
+                  <SelectItem key={country._id} value={country._id}>
+                    {country.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-country" disabled>
+                  No countries available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label htmlFor="city" className="text-gray-400 block pb-2">
+            City <span className="text-red-500">*</span>
+          </label>
+          <Select
+            value={selectedRow?.city || undefined}
+            onValueChange={(value) => onChange("city", value)}
+            disabled={!selectedRow?.country}
+          >
+            <SelectTrigger className="w-full p-3 border border-teal-500 rounded-md text-black bg-white">
+              <SelectValue
+                placeholder={
+                  selectedRow?.country ? "Select city" : "Select country first"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="bg-white border border-teal-500 rounded-md">
+              {filteredCities.length > 0 ? (
+                filteredCities.map((city) => (
+                  <SelectItem key={city._id} value={city._id}>
+                    {city.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-city" disabled>
+                  No cities available
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </EditDialog>
+
+    <DeleteDialog
+      open={isDeleteOpen}
+      onOpenChange={setIsDeleteOpen}
+      onDelete={handleDeleteConfirm}
+      name={selectedRow.name}
+      isLoading={isDeleting}
+    />
+  </>
+)}
     </div>
   );
 };

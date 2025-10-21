@@ -17,7 +17,7 @@ export default function SalesManagementAdd() {
   const [productOptions, setProductOptions] = useState([]);
   const [offerOptions, setOfferOptions] = useState([]);
 
-  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ إضافة حالة الإرسال
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     lead_id: "",
@@ -67,6 +67,7 @@ export default function SalesManagementAdd() {
   }, []);
 
   const handleInputChange = (name, value) => {
+    if (value === undefined || value === "undefined") return; // ✅ تجاهل undefined
     setFormData((prev) => {
       const newData = { ...prev, [name]: value };
       if (name === "item_type") {
@@ -78,7 +79,7 @@ export default function SalesManagementAdd() {
   };
 
   const handleSubmit = async () => {
-    if (isSubmitting) return; // ✅ منع الإرسال المتكرر
+    if (isSubmitting) return;
 
     const baseRequiredFields = ["lead_id", "sales_id", "item_type", "status"];
     let requiredFields = [...baseRequiredFields];
@@ -103,6 +104,8 @@ export default function SalesManagementAdd() {
       product_id: formData.item_type === "Product" ? formData.product_id : null,
       offer_id: formData.item_type === "Offer" ? formData.offer_id : null,
     };
+
+    console.log("📤 Payload sent:", payload);
 
     try {
       const response = await fetch(
@@ -138,30 +141,39 @@ export default function SalesManagementAdd() {
       console.error("Error creating sale:", error);
       toast.error("An error occurred while creating sale!");
     } finally {
-      setIsSubmitting(false); // ✅ إلغاء حالة الإرسال
+      setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
-  const leadDropdown = leadOptions.map((lead) => ({
-    value: lead._id,
+const leadDropdown = (leadOptions || [])
+  .filter((lead) => lead?.id && lead?.name)
+  .map((lead) => ({
+    value: String(lead.id),
     label: lead.name,
   }));
 
-  const salesDropdown = salesOptions.map((sales) => ({
-    value: sales._id,
-    label: sales.name,
+const salesDropdown = (salesOptions || [])
+  .filter((s) => s?.id && s?.name)
+  .map((s) => ({
+    value: String(s.id),
+    label: s.name,
   }));
 
-  const productDropdown = productOptions.map((product) => ({
-    value: product._id,
-    label: product.name,
+const productDropdown = (productOptions || [])
+  .filter((p) => p?.id && p?.name)
+  .map((p) => ({
+    value: String(p.id),
+    label: p.name,
   }));
 
-  const offerDropdown = offerOptions.map((offer) => ({
-    value: offer._id,
-    label: offer.name,
+const offerDropdown = (offerOptions || [])
+  .filter((o) => o?.id && o?.name)
+  .map((o) => ({
+    value: String(o.id),
+    label: o.name,
   }));
+
 
   const baseFields = [
     { type: "select", placeholder: "Select Lead *", name: "lead_id", required: true, options: leadDropdown },
@@ -202,7 +214,7 @@ export default function SalesManagementAdd() {
 
       <div className="!my-6">
         <Button
-          onClick={isSubmitting ? undefined : handleSubmit}
+          onClick={!isSubmitting ? handleSubmit : undefined}
           disabled={isSubmitting}
           className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
             isSubmitting

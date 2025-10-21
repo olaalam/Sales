@@ -12,19 +12,17 @@ export default function LeadAdd() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // ✅ 1️⃣ State للتحميل
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [salesOptions, setSalesOptions] = useState([]);
   const [activityOptions, setActivityOptions] = useState([]);
   const [sourceOptions, setSourceOptions] = useState([]);
   const [countryOptions, setCountryOptions] = useState([]);
-  const [cityOptions, setCityOptions] = useState([]); // All cities fetched
+  const [cityOptions, setCityOptions] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-
     type: "",
     sales_id: "",
     activity_id: "",
@@ -85,7 +83,7 @@ export default function LeadAdd() {
         [name]: value,
       };
 
-      // 🟢 Implement dependency logic: Reset city when country changes
+      // Reset city when country changes
       if (name === "country") {
         newState.city = ""; 
       }
@@ -94,7 +92,6 @@ export default function LeadAdd() {
     });
   };
 
-  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
     // Validation
     const requiredFields = [
@@ -119,10 +116,8 @@ export default function LeadAdd() {
       return;
     }
 
-    // ⛔ منع الإرسال المتكرر
     if (isSubmitting) return;
 
-    // ✅ تفعيل حالة الإرسال
     setIsSubmitting(true);
     dispatch(showLoader());
 
@@ -190,39 +185,39 @@ export default function LeadAdd() {
         autoClose: 3000,
       });
     } finally {
-      // ✅ إيقاف حالة الإرسال في جميع الحالات
       setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
+  // ✅ تحويل Options إلى dropdown format باستخدام id بدلاً من _id
   const salesDropdown = salesOptions.map((s) => ({
-    value: s._id,
+    value: String(s.id),
     label: s.name,
   }));
 
   const activityDropdown = activityOptions.map((a) => ({
-    value: a._id,
+    value: String(a.id),
     label: a.name,
   }));
 
   const sourceDropdown = sourceOptions.map((s) => ({
-    value: s._id,
+    value: String(s.id),
     label: s.name,
   }));
 
   const countryDropdown = countryOptions.map((c) => ({
-    value: c._id,
+    value: String(c.id),
     label: c.name,
   }));
 
-  // 🔴 FIXED: Filter city options based on selected country using the 'country' key
+  // ✅ Filter cities based on selected country using country_id
   const filteredCityOptions = cityOptions.filter(
-    (city) => city.country === formData.country
+    (city) => String(city.country_id) === String(formData.country)
   );
 
   const cityDropdown = filteredCityOptions.map((c) => ({
-    value: c._id,
+    value: String(c.id),
     label: c.name,
   }));
 
@@ -253,7 +248,6 @@ export default function LeadAdd() {
       required: true,
       options: activityDropdown,
     },
-    // Country Select (Master)
     {
       type: "select",
       placeholder: "Select Country *",
@@ -261,7 +255,6 @@ export default function LeadAdd() {
       required: true,
       options: countryDropdown,
     },
-    // City Select (Dependent) - Note: City options are now filtered
     {
       type: "select",
       placeholder: 
@@ -271,7 +264,6 @@ export default function LeadAdd() {
       name: "city",
       required: true,
       options: cityDropdown,
-      // Disable City if no Country is selected or if the filtered list is empty
       disabled: !formData.country || cityDropdown.length === 0, 
     },
     {

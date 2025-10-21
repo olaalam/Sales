@@ -12,15 +12,13 @@ export default function ProductAdd() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // ✅ 1️⃣ State للتحميل
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price_month: "",
-    price_quarter: "",
-    price_year: "",
+    subscription_type: "",
+    price: "",
     setup_fees: "",
     status: "active",
   });
@@ -36,15 +34,13 @@ export default function ProductAdd() {
     }));
   };
 
-  // ✅ 2️⃣ تعديل دالة Submit
   const handleSubmit = async () => {
-    // Validation
+    // ✅ التحقق من الحقول المطلوبة
     if (
       !formData.name ||
       !formData.description ||
-      formData.price_month === "" ||
-      formData.price_quarter === "" ||
-      formData.price_year === "" ||
+      !formData.subscription_type ||
+      formData.price === "" ||
       formData.setup_fees === ""
     ) {
       toast.error("Please fill in all required fields", {
@@ -54,21 +50,18 @@ export default function ProductAdd() {
       return;
     }
 
-    // ⛔ منع الإرسال المتكرر
     if (isSubmitting) return;
 
-    // ✅ تفعيل حالة الإرسال
     setIsSubmitting(true);
     dispatch(showLoader());
 
     const payload = {
       name: formData.name.trim(),
       description: formData.description.trim(),
-      price_month: parseFloat(formData.price_month) || 0,
-      price_quarter: parseFloat(formData.price_quarter) || 0,
-      price_year: parseFloat(formData.price_year) || 0,
+      subscription_type: formData.subscription_type, // ✅ نفس القيم المطلوبة من الـ API
+      price: parseFloat(formData.price) || 0,
       setup_fees: parseFloat(formData.setup_fees) || 0,
-      status: formData.status === "active" ? true : false,
+      status: formData.status === "active",
     };
 
     console.log("Payload being sent:", payload);
@@ -86,11 +79,11 @@ export default function ProductAdd() {
         }
       );
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log("product created successfully:", result);
+      const result = await response.json();
 
-        toast.success("product created successfully!", {
+      if (response.ok) {
+        console.log("Product created successfully:", result);
+        toast.success("Product created successfully!", {
           position: "top-right",
           autoClose: 3000,
         });
@@ -98,29 +91,16 @@ export default function ProductAdd() {
         setFormData({
           name: "",
           description: "",
-          price_month: "",
-          price_quarter: "",
-          price_year: "",
+          subscription_type: "",
+          price: "",
           setup_fees: "",
           status: "active",
         });
 
         navigate("/product");
       } else {
-        const errorData = await response.json();
-        console.error("Create failed:", errorData);
-
-        let errorMessage = "Failed to create product";
-
-        if (errorData.error?.message) {
-          errorMessage = errorData.error.message;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        }
-
-        toast.error(errorMessage, {
+        console.error("Create failed:", result);
+        toast.error(result?.error?.message || "Failed to create product", {
           position: "top-right",
           autoClose: 3000,
         });
@@ -132,32 +112,43 @@ export default function ProductAdd() {
         autoClose: 3000,
       });
     } finally {
-      // ✅ إيقاف حالة الإرسال في جميع الحالات
       setIsSubmitting(false);
       dispatch(hideLoader());
     }
   };
 
+  // ✅ الحقول الجديدة المتوافقة مع API
   const fields = [
     {
       type: "input",
-      placeholder: "product Name *",
+      placeholder: "Product Name *",
       name: "name",
-      required: true,
       inputType: "text",
+      required: true,
     },
     {
       type: "input",
-      placeholder: "product Description *",
+      placeholder: "Product Description *",
       name: "description",
       inputType: "text",
       required: true,
-      min: 0,
+    },
+    {
+      type: "select",
+      placeholder: "Subscription Type *",
+      name: "subscription_type",
+      required: true,
+      options: [
+        { label: "Monthly", value: "Monthly" },
+        { label: "Quarterly", value: "Quarterly" },
+        { label: "Half year", value: "Half year" },
+        { label: "Yearly", value: "Yearly" },
+      ],
     },
     {
       type: "input",
-      placeholder: "Price month",
-      name: "price_month",
+      placeholder: "Price *",
+      name: "price",
       inputType: "number",
       min: 0,
       step: "0.01",
@@ -165,25 +156,7 @@ export default function ProductAdd() {
     },
     {
       type: "input",
-      placeholder: "Price quarter",
-      name: "price_quarter",
-      inputType: "number",
-      min: 0,
-      step: "0.01",
-      required: true,
-    },
-    {
-      type: "input",
-      placeholder: "Price Yearly",
-      name: "price_year",
-      inputType: "number",
-      min: 0,
-      step: "0.01",
-      required: true,
-    },
-    {
-      type: "input",
-      placeholder: "Setup Fees",
+      placeholder: "Setup Fees *",
       name: "setup_fees",
       inputType: "number",
       min: 0,
@@ -202,21 +175,9 @@ export default function ProductAdd() {
 
   return (
     <div className="w-full p-6 relative">
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        style={{ zIndex: 9999 }}
-      />
-
-      <h2 className="text-bg-primary text-center !pb-10 text-xl font-semibold !mb-10">
-        Add product
+      <ToastContainer position="top-right" autoClose={3000} />
+      <h2 className="text-bg-primary text-center pb-10 text-xl font-semibold mb-10">
+        Add Product
       </h2>
 
       <div className="w-[90%] mx-auto">
@@ -224,17 +185,16 @@ export default function ProductAdd() {
       </div>
 
       <div className="!my-6">
-        {/* ✅ 3️⃣ تعديل الـ Button */}
         <Button
           onClick={isSubmitting ? undefined : handleSubmit}
           disabled={isSubmitting}
-          className={`!mb-10 !ms-3 !px-5 !py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
-            isSubmitting 
-              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+          className={`mb-10 ms-3 px-5 py-6 text-white w-[30%] rounded-[15px] transition-all duration-200 ${
+            isSubmitting
+              ? "bg-gray-400 cursor-not-allowed opacity-60"
               : "bg-bg-primary cursor-pointer hover:bg-teal-600"
           }`}
         >
-          {isSubmitting ? "Creating..." : "Create product"}
+          {isSubmitting ? "Creating..." : "Create Product"}
         </Button>
       </div>
     </div>

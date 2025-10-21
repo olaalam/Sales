@@ -16,8 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Importing Shadcn UI components for the new dialog
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -34,10 +32,8 @@ const SalesManagement = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  // حالات التحميل المنفصلة
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // New state variables for the approve dialog
   const [isApproveOpen, setIsApproveOpen] = useState(false);
   const [pointsValue, setPointsValue] = useState("");
 
@@ -71,24 +67,23 @@ const SalesManagement = () => {
         const sale_date = `${saleDate.getFullYear()}/${(saleDate.getMonth() + 1).toString().padStart(2, "0")}/${saleDate.getDate().toString().padStart(2, "0")}`;
 
         return {
-          id: sale._id,
-          lead_id: sale.lead_id?.name || "—",
-          sales_id: sale.sales_id?.name || "—",
-          product_id: sale.product_id?.name || "—",
-          offer_id: sale.offer_id?.name || "—",
+          id: sale.id,
+          lead_id: sale.lead?.name || "—",
+          sales_id: sale.salesUser?.name || "—",
+          product_id: sale.product?.name || "—",
+          offer_id: sale.offer?.name || "—",
           item_type: sale.item_type || "—",
           status: sale.status || "Pending",
           sale_date,
-          // Storing the actual IDs for update process
-          lead_id_value: sale.lead_id?._id || null,
-          sales_id_value: sale.sales_id?._id || null,
-          product_id_value: sale.product_id?._id || null,
-          offer_id_value: sale.offer_id?._id || null,
+          // تخزين الـ IDs الفعلية
+          lead_id_value: sale.lead?.id || null,
+          sales_id_value: sale.salesUser?.id || null,
+          product_id_value: sale.product?.id || null,
+          offer_id_value: sale.offer?.id || null,
         };
       });
 
       setsalesManagements(formatted);
-      // Set options from API response
       setLeadOptions(result.data.data.leadOptions || []);
       setSalesOptions(result.data.data.salesOptions || []);
       setProductOptions(result.data.data.productOptions || []);
@@ -106,7 +101,6 @@ const SalesManagement = () => {
   }, []);
 
   const handleEdit = (sale) => {
-    // When editing, set the selected row and use the _id values for the Select components
     setSelectedRow({
       ...sale,
       lead_id: sale.lead_id_value,
@@ -125,33 +119,20 @@ const SalesManagement = () => {
   const handleSave = async () => {
     if (!selectedRow) return;
 
-    const { id, lead_id, sales_id, item_type, status, product_id, offer_id } =
-      selectedRow;
+    const { id, lead_id, sales_id, item_type, status, product_id, offer_id } = selectedRow;
 
-    // 1. بناء الحمولة (Payload) الأساسية
     const payload = {
       item_type: item_type || "Product",
       status: status || "Pending",
     };
 
-    // 2. إضافة الحقول الاختيارية (IDs) فقط إذا كانت القيمة موجودة (وليست null/undefined)
-    if (lead_id) {
-      payload.lead_id = lead_id;
-    }
+    if (lead_id) payload.lead_id = lead_id;
+    if (sales_id) payload.sales_id = sales_id;
 
-    if (sales_id) {
-      payload.sales_id = sales_id;
-    }
-
-    // 3. إضافة حقل المنتج أو العرض بناءً على item_type
     if (item_type === "Product") {
-      if (product_id) {
-        payload.product_id = product_id;
-      }
+      if (product_id) payload.product_id = product_id;
     } else if (item_type === "Offer") {
-      if (offer_id) {
-        payload.offer_id = offer_id;
-      }
+      if (offer_id) payload.offer_id = offer_id;
     }
 
     console.log("Payload being sent:", payload);
@@ -217,12 +198,11 @@ const SalesManagement = () => {
   };
 
   const handleToggleStatus = async (row, newStatus) => {
-    setSelectedRow(row); // Set the selected row to have its ID available
+    setSelectedRow(row);
 
     if (newStatus === "Approve") {
       setIsApproveOpen(true);
     } else {
-      // Logic for 'Reject' or 'Pending'
       try {
         const response = await fetch(
           `https://negotia.wegostation.com/api/admin/sales-management/${row.id}`,
@@ -274,7 +254,6 @@ const SalesManagement = () => {
 
       if (response.ok) {
         toast.success("Sale approved and points awarded successfully!");
-        // Update the status locally to 'Approve' and refresh data
         setsalesManagements((prev) =>
           prev.map((sale) =>
             sale.id === selectedRow.id ? { ...sale, status: "Approve" } : sale
@@ -292,7 +271,6 @@ const SalesManagement = () => {
       toast.error("Error occurred while approving sale!");
     }
   };
-
 
   const onChange = (key, value) => {
     setSelectedRow((prev) => ({
@@ -365,17 +343,16 @@ const SalesManagement = () => {
             selectedRow={selectedRow}
             columns={columns}
             onChange={onChange}
-              isLoading={isSaving}
+            isLoading={isSaving}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* First Row: Lead */}
               <div>
                 <label htmlFor="lead_id" className="text-gray-400 !pb-3">
                   Lead
                 </label>
                 <Select
-                  value={selectedRow?.lead_id || undefined} // 🌟 تم التأكد من استخدام || undefined
-                  onValueChange={(value) => onChange("lead_id", value)}
+                  value={selectedRow?.lead_id ? String(selectedRow.lead_id) : undefined}
+                  onValueChange={(value) => onChange("lead_id", parseInt(value))}
                 >
                   <SelectTrigger className="!my-2 text-bg-primary !p-4 w-full">
                     <SelectValue placeholder="Select lead" />
@@ -384,8 +361,8 @@ const SalesManagement = () => {
                     {leadOptions.length > 0 ? (
                       leadOptions.map((option) => (
                         <SelectItem
-                          key={option._id}
-                          value={option._id}
+                          key={option.id}
+                          value={String(option.id)}
                           className="cursor-pointer"
                         >
                           {option.name}
@@ -400,14 +377,13 @@ const SalesManagement = () => {
                 </Select>
               </div>
 
-              {/* Sales Person */}
               <div>
                 <label htmlFor="sales_id" className="text-gray-400 !pb-3">
                   Sales Person
                 </label>
                 <Select
-                  value={selectedRow?.sales_id || undefined} // 🌟 تم التأكد من استخدام || undefined
-                  onValueChange={(value) => onChange("sales_id", value)}
+                  value={selectedRow?.sales_id ? String(selectedRow.sales_id) : undefined}
+                  onValueChange={(value) => onChange("sales_id", parseInt(value))}
                 >
                   <SelectTrigger className="!my-2 text-bg-primary !p-4 w-full">
                     <SelectValue placeholder="Select sales person" />
@@ -416,8 +392,8 @@ const SalesManagement = () => {
                     {salesOptions.length > 0 ? (
                       salesOptions.map((option) => (
                         <SelectItem
-                          key={option._id}
-                          value={option._id}
+                          key={option.id}
+                          value={String(option.id)}
                           className="cursor-pointer"
                         >
                           {option.name}
@@ -432,7 +408,6 @@ const SalesManagement = () => {
                 </Select>
               </div>
 
-              {/* Second Row: Item Type */}
               <div>
                 <label htmlFor="item_type" className="text-gray-400 !pb-3">
                   Item Type
@@ -455,15 +430,14 @@ const SalesManagement = () => {
                 </Select>
               </div>
 
-              {/* Conditional field: Product or Offer */}
               {selectedRow?.item_type === "Product" ? (
                 <div>
                   <label htmlFor="product_id" className="text-gray-400 !pb-3">
                     Product
                   </label>
                   <Select
-                    value={selectedRow?.product_id || undefined} // 🌟 تم التأكد من استخدام || undefined
-                    onValueChange={(value) => onChange("product_id", value)}
+                    value={selectedRow?.product_id ? String(selectedRow.product_id) : undefined}
+                    onValueChange={(value) => onChange("product_id", parseInt(value))}
                   >
                     <SelectTrigger className="!my-2 text-bg-primary !p-4 w-full">
                       <SelectValue placeholder="Select product" />
@@ -472,8 +446,8 @@ const SalesManagement = () => {
                       {productOptions.length > 0 ? (
                         productOptions.map((option) => (
                           <SelectItem
-                            key={option._id}
-                            value={option._id}
+                            key={option.id}
+                            value={String(option.id)}
                             className="cursor-pointer"
                           >
                             {option.name}
@@ -493,8 +467,8 @@ const SalesManagement = () => {
                     Offer
                   </label>
                   <Select
-                    value={selectedRow?.offer_id || undefined} // 🌟 تم التأكد من استخدام || undefined
-                    onValueChange={(value) => onChange("offer_id", value)}
+                    value={selectedRow?.offer_id ? String(selectedRow.offer_id) : undefined}
+                    onValueChange={(value) => onChange("offer_id", parseInt(value))}
                   >
                     <SelectTrigger className="!my-2 text-bg-primary !p-4">
                       <SelectValue placeholder="Select offer" />
@@ -503,8 +477,8 @@ const SalesManagement = () => {
                       {offerOptions.length > 0 ? (
                         offerOptions.map((option) => (
                           <SelectItem
-                            key={option._id}
-                            value={option._id}
+                            key={option.id}
+                            value={String(option.id)}
                             className="cursor-pointer"
                           >
                             {option.name}
@@ -526,13 +500,12 @@ const SalesManagement = () => {
             open={isDeleteOpen}
             onOpenChange={setIsDeleteOpen}
             onDelete={handleDeleteConfirm}
-             isLoading={isDeleting}
+            isLoading={isDeleting}
             name={selectedRow.lead_id || `Sale ${selectedRow.id}`}
           />
         </>
       )}
 
-      {/* New Dialog for "Approve" status */}
       <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
         <DialogContent className="sm:max-w-[425px] bg-white !p-5 rounded-lg shadow-lg">
           <DialogHeader className="!pb-4 border-b border-gray-200">
@@ -552,7 +525,6 @@ const SalesManagement = () => {
                 value={pointsValue}
                 onChange={(e) => setPointsValue(e.target.value)}
                 className="flex-1 h-12 rounded-md border border-gray-300 focus:ring-2 focus:ring-bg-primary focus:border-transparent transition-all duration-200 !px-4"
-
               />
             </div>
           </div>
@@ -568,7 +540,6 @@ const SalesManagement = () => {
               className="!px-6 !py-3 rounded-md bg-bg-primary hover:bg-teal-600 text-white font-semibold transition-colors duration-200 cursor-pointer"
               type="button"
               onClick={handleApproveAndSendPoints}
-              // 🛑 منطق التعطيل المعدل لزر الإرسال
               disabled={
                 !pointsValue ||
                 isNaN(parseInt(pointsValue)) ||
@@ -580,7 +551,6 @@ const SalesManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };

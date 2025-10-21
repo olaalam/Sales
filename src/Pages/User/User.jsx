@@ -21,10 +21,10 @@ import {
 const User = () => {
   const dispatch = useDispatch();
   // حالة التحميل العامة (تستخدم للـ FullPageLoader)
-  const isGlobalLoading = useSelector((state) => state.loader.isLoading); 
-  
+  const isGlobalLoading = useSelector((state) => state.loader.isLoading);
+
   // ✨ حالات التحميل الجديدة لتعطيل الأزرار في الـ DataTable
-  const [isSaving, setIsSaving] = useState(false); 
+  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [users, setUsers] = useState([]);
@@ -40,7 +40,7 @@ const User = () => {
 
   const fetchUsers = async () => {
     // نستخدم الـ Loader العام هنا لأنه يغطي كامل الشاشة أثناء جلب البيانات
-    dispatch(showLoader()); 
+    dispatch(showLoader());
     try {
       const response = await fetch(
         "https://negotia.wegostation.com/api/admin/users/",
@@ -67,9 +67,9 @@ const User = () => {
         )
           .toString()
           .padStart(2, "0")}/${createdDate
-          .getDate()
-          .toString()
-          .padStart(2, "0")}`;
+            .getDate()
+            .toString()
+            .padStart(2, "0")}`;
 
         const avatar = (
           <Avatar className="w-12 h-12">
@@ -85,15 +85,15 @@ const User = () => {
             : "inactive";
 
         return {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-          leader_name: user.leader_id?.name || "—",
-          leader_id: user.leader_id?._id || null,
-          target_name: user.target_id?.name || "—",
-          target_point: user.target_id?.point || 0,
-          target_id: user.target_id?._id || null,
+          leader_name: user.leader?.name || "—",
+          leader_id: user.leader?._id || null,
+          target_name: user.target?.name || "—",
+          target_point: user.target?.point || 0,
+          target_id: user.target?.id || null,
           status, // Use normalized status
           created_at,
           avatar,
@@ -155,7 +155,7 @@ const User = () => {
   const handleEdit = (user) => {
     setSelectedRow({
       ...user,
-      target_id: user.target_id || "",
+target_id: user.target_id || "",
     });
     setIsEditOpen(true);
   };
@@ -194,7 +194,7 @@ const User = () => {
     console.log("Payload being sent:", payload);
 
     // ✨ تفعيل حالة التحميل الخاصة بعملية الحفظ
-    setIsSaving(true); 
+    setIsSaving(true);
     try {
       const response = await fetch(
         `https://negotia.wegostation.com/api/admin/users/${id}`,
@@ -223,7 +223,7 @@ const User = () => {
       toast.error("Error occurred while updating user!");
     } finally {
       // ✨ تعطيل حالة التحميل الخاصة بعملية الحفظ
-      setIsSaving(false); 
+      setIsSaving(false);
     }
   };
 
@@ -231,8 +231,11 @@ const User = () => {
     // ✨ تفعيل حالة التحميل الخاصة بعملية الحذف
     setIsDeleting(true);
     try {
+      const userId = selectedRow.id; 
+      console.log("Deleting user:", userId);
+
       const response = await fetch(
-        `https://negotia.wegostation.com/api/admin/users/${selectedRow.id}`,
+        `https://negotia.wegostation.com/api/admin/users/${userId}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -316,7 +319,7 @@ const User = () => {
           user.id === id ? { ...user, status: oldStatus } : user
         )
       );
-    } 
+    }
     // في الكود الأصلي: finally { dispatch(hideLoader()); }
   };
 
@@ -385,8 +388,8 @@ const User = () => {
         filterOptions={filterOptionsForUsers}
         searchKeys={["name", "email", "leader_name", "target_name"]}
         className="table-compact"
-        isLoadingEdit={isSaving}    
-        isLoadingDelete={isDeleting} 
+        isLoadingEdit={isSaving}
+        isLoadingDelete={isDeleting}
       />
 
       {selectedRow && (
@@ -399,7 +402,7 @@ const User = () => {
             columns={columns}
             onChange={onChange}
             // ✨ تمرير حالة التحميل الخاصة بالحفظ
-            isLoading={isSaving} 
+            isLoading={isSaving}
           >
             <label htmlFor="name" className="text-gray-400 !pb-3">
               Name
