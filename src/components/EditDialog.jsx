@@ -29,25 +29,25 @@ export default function EditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white p-6 rounded-lg shadow-lg max-w-3xl">
+      <DialogContent className="bg-white !p-6 rounded-lg shadow-lg max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-bg-primary">
             Edit
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6">{children}</div>
-        <DialogFooter className="pt-6">
+        <div className="!space-y-6">{children}</div>
+        <DialogFooter className="!pt-6">
           <Button
             onClick={() => onOpenChange(false)}
             variant="outline"
-            className="border border-bg-primary cursor-pointer p-4 text-bg-primary rounded-md mr-4"
+            className="border border-bg-primary cursor-pointer !p-4 text-bg-primary rounded-md !mr-4"
           >
             Cancel
           </Button>
           <Button
             disabled={isLoading}
             onClick={onSave}
-            className="bg-bg-primary cursor-pointer p-4 text-white rounded-md"
+            className="bg-bg-primary cursor-pointer !p-4 text-white rounded-md"
           >
             {isLoading ? "Saving..." : "Save"}
           </Button>

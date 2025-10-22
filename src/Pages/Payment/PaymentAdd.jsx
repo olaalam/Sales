@@ -147,11 +147,11 @@ export default function PaymentAdd() {
     }
   };
 
-  const leadDropdownOptions = options.leadOptions.map(l => ({ value: l._id, label: l.name }));
-  const salesDropdownOptions = options.salesOptions.map(s => ({ value: s._id, label: s.name }));
-  const productDropdownOptions = options.productOptions.map(p => ({ value: p._id, label: `${p.name} (${p.points} points)` }));
-  const offerDropdownOptions = options.offerOptions.map(o => ({ value: o._id, label: o.name }));
-  const paymentMethodDropdownOptions = options.paymentMethodOptions.map(p => ({ value: p._id, label: p.name }));
+  const leadDropdownOptions = options.leadOptions.map(l => ({ value: l.id, label: l.name }));
+  const salesDropdownOptions = options.salesOptions.map(s => ({ value: s.id, label: s.name }));
+  const productDropdownOptions = options.productOptions.map(p => ({ value: p.id, label: `${p.name} (${p.points} points)` }));
+  const offerDropdownOptions = options.offerOptions.map(o => ({ value: o.id, label: o.name }));
+  const paymentMethodDropdownOptions = options.paymentMethodOptions.map(p => ({ value: p.id, label: p.name }));
 
   const fields = [
     {

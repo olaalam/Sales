@@ -7,37 +7,33 @@ import { useDispatch, useSelector } from "react-redux";
 import { showLoader, hideLoader } from "@/Store/LoaderSpinner";
 import FullPageLoader from "@/components/Loading";
 
-// Helper function to format date for HTML date input
+// ✅ Helper: Format date into YYYY-MM-DD
 const formatDateForInput = (dateString) => {
-  if (!dateString || dateString === "—") return "";
-
+  if (!dateString) return "";
   try {
     const date = new Date(dateString);
-    // Check if date is valid
     if (isNaN(date.getTime())) return "";
-
-    // Format to YYYY-MM-DD
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-
     return `${year}-${month}-${day}`;
-  } catch (error) {
-    console.error("Error formatting date:", error);
+  } catch {
     return "";
   }
 };
+
 const Payment = () => {
   const dispatch = useDispatch();
   const isLoading = useSelector((state) => state.loader.isLoading);
-  const [payments, setpayments] = useState([]);
+  const [payments, setPayments] = useState([]);
   const token = localStorage.getItem("token");
 
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${token}`,
   });
 
-  const fetchpayments = async () => {
+  // ✅ Fetch Payments
+  const fetchPayments = async () => {
     dispatch(showLoader());
     try {
       const response = await fetch(
@@ -57,23 +53,24 @@ const Payment = () => {
       }
 
       const result = await response.json();
+      const data = result.data.data.payments;
 
-      const formatted = result.data.data.payments.map((payment) => {
+      // ✅ Format the payments array correctly
+      const formatted = data.map((payment) => {
+        const sale = payment.sales?.[0]; // First sale from array (if exists)
         return {
-          id: payment._id,
-          lead_id: payment?.lead_id?.name,
-          sales_id: payment.sales_id?.name || "—",
-          payment_date: payment.payment_date
-            ? formatDateForInput(payment.payment_date)
-            : "",
-          product_id: payment.product_id?.name || "—",
-          offer_id: payment.offer_id?.name || "_",
-          payment_method_id: payment.payment_method_id?.name || "—",
-          amount: payment.amount || 0,
+          id: payment.id,
+          lead: sale?.lead?.name || "—",
+          sales_user: sale?.salesUser?.name || "—",
+          product: sale?.product?.name || "—",
+          offer: sale?.offer?.name || "—",
+          payment_method: payment.method?.name || "—",
+          amount: payment.amount ?? 0,
+          payment_date: formatDateForInput(payment.payment_date),
         };
       });
 
-      setpayments(formatted);
+      setPayments(formatted);
     } catch (error) {
       console.error("Error fetching payments:", error);
       toast.error("Failed to load payments data");
@@ -82,19 +79,18 @@ const Payment = () => {
     }
   };
 
-
-
   useEffect(() => {
-    fetchpayments();
+    fetchPayments();
   }, []);
 
+  // ✅ Table columns
   const columns = [
-    { key: "lead_id", label: "Lead" },
-    { key: "sales_id", label: "Sales" },
-    { key: "product_id", label: "Product" },
-    { key: "offer_id", label: "Offer" },
-    { key: "payment_method_id", label: "Payment Method" },
-    { key: "amount", label: " Amount" },
+    { key: "lead", label: "Lead" },
+    { key: "sales_user", label: "Sales" },
+    { key: "product", label: "Product" },
+    { key: "offer", label: "Offer" },
+    { key: "payment_method", label: "Payment Method" },
+    { key: "amount", label: "Amount" },
     { key: "payment_date", label: "Payment Date" },
   ];
 
@@ -112,7 +108,7 @@ const Payment = () => {
         showDeleteButton={false}
         showActions={false}
         showFilter={true}
-        searchKeys={["lead_id", "sales_id", "product_name"]}
+        searchKeys={["lead", "sales_user", "product", "payment_method"]}
         className="table-compact"
       />
     </div>

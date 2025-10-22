@@ -51,9 +51,9 @@ const City = () => {
       const result = await response.json();
 
       const formatted = result.data.data.map((city) => ({
-        id: city._id,
+        id: city.id,
         name: city.name,
-        country_id: city.country?._id || "",
+        country_id: city.country?.id || "",
         country_name: city.country?.name || "—",
       }));
 
@@ -105,13 +105,12 @@ const handleEdit = (city) => {
 
   const handleSave = async () => {
     if (!selectedRow) return;
-    const { id, name, country_id } = selectedRow;
+    const { id, name, country } = selectedRow;
   console.log("Updating city with ID:", selectedRow?.id); // 👈 شوف الـ id هنا
 
     const payload = {
       name,
-      countryId: country_id,
-    };
+countryId: selectedRow.country_id,    };
 
     setIsSaving(true);
     try {
@@ -249,7 +248,7 @@ const handleEdit = (city) => {
               </SelectTrigger>
               <SelectContent className="bg-white !p-2">
                 {countries.map((country) => (
-                  <SelectItem key={country._id} value={country._id}>
+                  <SelectItem key={country.id} value={country.id}>
                     {country.name}
                   </SelectItem>
                 ))}
